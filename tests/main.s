@@ -1,12 +1,19 @@
-inc "print"
+//inc "print.s"
 
-prv int e;
+int e;
 pub int a;
 
-prv int hello(int z) {
+int f;
 
+void start(int argc, str argv) {
+	if (e == argc) {
+		hello(argc);
+		if (a == a) {
+			
+		}
+	}
 }
 
-prv start(int args) {
-
+int hello(int z, int a) {
+	print("wow!");
 }

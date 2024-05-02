@@ -5,166 +5,97 @@
 #include <memory>
 #include <unordered_map>
 
-enum TokenType {
-	TOKEN_UNKNOWN,
-	TOKEN_DECL_TYPE,
-	TOKEN_EXPRESSION,
-	TOKEN_DECL_FUNC,
-	TOKEN_DECL_VAR,
-	TOKEN_LITERAL,
+enum TOKEN_TYPES {
+	TOK_UNKOWN,
+	TOK_NONE,
+	TOK_LPAREN,
+	TOK_RPAREN,
+	TOK_LBRACE,
+	TOK_RBRACE,
+	TOK_EQUALS,
+	TOK_EQUALITY,
+	TOK_GREATER,
+	TOK_LESS,
+	TOK_GREATER_EQ,
+	TOK_LESS_EQ,
+	TOK_PLUS,
+	TOK_MINUS,
+	TOK_INT,
+	TOK_INT_VALUE,
+	TOK_STRING,
+	TOK_STRING_VALUE,
+	TOK_VOID,
+	TOK_COMMA,
+	TOK_SEMICOLON,
+	TOK_IF,
+	TOK_INCLUDE,
+	TOK_ELSE,
+	TOK_IDENTIFIER,
+	TOK_PRIVATE,
+	TOK_PUBLIC,
+	TOK_TRUE,
+	TOK_FALSE,
+	TOK_LBRACKET,
+	TOK_RBRACKET,
 };
 
-class BaseToken {
-public:
-	int type;
-private:
+enum KEYWORD_IDS {
+	KEY_UNKNOWN,
+	KEY_IF,
+	KEY_ELSE,
+	KEY_INCLUDE,
+	KEY_PRIVATE,
+	KEY_PUBLIC,
+	KEY_TRUE,
+	KEY_FALSE,
+	KEY_INT,
+	KEY_STRING,
+	KEY_VOID
 };
 
-class VariableType { // declare a new variable type
+enum TOKEN_CLASS {
+	CLASS_GENERIC,
+	CLASS_EQUALITY,
+	CLASS_LITERAL,
+	CLASS_IDENTIFIER,
+	CLASS_TYPE,
+	CLASS_STATEMENT,
+	CLASS_MATH_OPERATION,
+};
+
+class Token {
 public:
-	VariableType(std::string typeName) {
-		_typeName = typeName;
+	Token(enum TOKEN_TYPES ntype, std::string ident, enum TOKEN_CLASS c) {
+		type = ntype;
+		identifier = ident;
+		tclass = c;
 	}
-private:
-	bool isGroup = false;
-	bool isPrimitive = true;
-	std::string _typeName;
-	int typeIndex = 0;
-};
-
-class Variable : public BaseToken {
-public:
-	Variable(int type, std::string name);
-private:
-	
-};
-
-class DeclFunction : public BaseToken {
-public:
-	DeclFunction(std::vector<int> args, std::vector<std::unique_ptr<BaseToken>> contents) {
-		argTypes = args;
-		tokens = std::move(contents);
+	enum TOKEN_TYPES GetType() {return type;}
+	std::string GetIdentifier() {return identifier;}
+	void SetLiteral(bool l) {
+		isLiteral = l;
 	}
-	//std::vector<std::unique_ptr<BaseToken>> GetTokens();
+	enum TOKEN_CLASS GetClass() {return tclass;}
 private:
-	std::vector<std::unique_ptr<BaseToken>> tokens;
-	std::vector<int> argTypes;
-};
-
-class FunctionCall : public BaseToken {
-	
-};
-
-class IncludeToken : public BaseToken {
-public:
-	IncludeToken(std::string inputFile) {
-		_inputFile = inputFile;
-	}
-private:
-	std::string _inputFile;
-};
-
-/*
-
-#include "file_tree.h"
-
-enum PrimitiveTypes {
-	TYPE_INT,
-	TYPE_STRING,
-	TYPE_BOOL,
-	TYPE_FLOAT
-};
-
-enum InequalityType {
-	INEQ_GREATER,
-	INEQ_LESS,
-	INEQ_GREATER_EQ,
-	INEQ_LESS_EQ,
-};
-
-class Group {
-public:
-	Group(std::string groupName);
-	AddMethod();
-	AddMemberVar();
-private:
-	std::vector<Function> methods;
-	std::vector<Variable> vars;
-};
-
-class Literal : public BaseToken {
-	
-};
-
-class StringLiteral : public Literal {
-public:
-	StringLiteral(std::string contents);
-};
-
-class IntLiteral : public Literal  {
-public:
-	IntLiteral(int contents);
-};
-
-class FloatLiteral : public Literal  {
-public:
-	FloatLiteral(float contents);
-private:
-	
-};
-
-class BoolLiteral : public Literal  {
-public:
-	BoolLiteral(bool contents);
-private:
-	bool value;
-};
-
-// tokens
-class Operand {
-public:
-	Operand(Variable var);
-	Operand(Literal var);
-private:
+	enum TOKEN_TYPES type;
+	enum TOKEN_CLASS tclass;
+	std::string identifier;
 	bool isLiteral = false;
-	Variable var;
-	Literal lit;
 };
-
-class Expression : public BaseToken { // has two operands, which evaluate to a prvalue
-public:
-	
-private:
-};
-
-class EqualsExpression : public Expression {
-	EqualsExpression(Operand var1, Operand var2);
-};
-
-class AssignmentExpression : public Expression {
-public:
-	AssignmentExpression(Operand var1, Operand var2);
-};
-
-class InequalityExpression : public Expression {
-public:
-	InequalityExpression(Operand var1, Operand var2, enum InequalityType type);
-};
-
-class AdditionExpression : public Expression {
-public:
-	AdditionExpression(Operand opr1, Operand opr2);
-};*/
 
 class Lexer {
 public:
 	Lexer(std::string sourceDir);
-	void ParseFile();
+	std::vector<Token> ParseFile();
 private:
+	void Warning(std::string warning);
 	size_t place = 0;
+	int line = 1;
 	std::string contents;
-	int GetKeywordId(std::string keyword);
-	std::string FindNextStringLiteral(std::string line, int& start);
-	std::shared_ptr<BaseToken> FindNextToken();
+	enum KEYWORD_IDS GetKeywordId(std::string keyword);
+	std::string GetNextString();
+	Token GetNextToken();
 	void SkipWhitespace();
+	void AdvancePlace();
+	std::string GetStrUntilNonAlpha();
 };

@@ -1,0 +1,13 @@
+thoughts about inc:
+C & C++'s include functions have been the subject of much discourse over the past years. Many people have tried to faze out the include by substituting it with import keywords (such as python & javascript).
+That's good for them, it works fine. When you want to use something, you just import it and everything is okay.
+I, personally, like include for its ease of use when importing libraries without classes.
+In all fairness, I've never use python's import system, so maybe it's great! I just don't know.
+Either way, my inc system will work like the following:
+1) inc is found
+2) string is looked for in the next token
+3) once found, it is checked if it has been parsed yet
+4) if it has, go to step 6
+5) parse file
+6) include all public functions and groups
+--end inc thoughts--
