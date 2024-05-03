@@ -33,7 +33,7 @@ Lexer::Lexer(std::string sourceDir) {
 			line = line.erase(line.find("//"));
 		contents += line + '\n';
 	}
-	contents.pop_back();
+	contents.pop_back(); // remove last newline
 }
 
 std::vector<Token> Lexer::ParseFile() {
@@ -41,7 +41,7 @@ std::vector<Token> Lexer::ParseFile() {
 	while (place < contents.length()) {
 		Token tok = GetNextToken();
 		AdvancePlace();
-		//std::cout << "New token " << tok.GetType() << " " << tok.GetIdentifier() << std::endl;
+		//std::cout << "New token " << tok.GetType() << " " << tok.GetIdentifier() << " " << tok.GetClass() << std::endl;
 		tokens.push_back(tok);
 	}
 	return tokens;
@@ -117,39 +117,43 @@ Token Lexer::GetNextToken() {
 	// if is alphanumeric, then it may be a keyword
 	if (isalnum(curChr)) {
 		std::string keyword = GetStrUntilNonAlpha();
+		if (isdigit(curChr)) {
+			return Token(TOK_INT_VALUE, keyword, std::stoi(keyword), CLASS_LITERAL, line);
+		}
+		
 		switch (GetKeywordId(keyword)) {
 			case KEY_UNKNOWN:
-				return Token(TOK_IDENTIFIER, keyword, CLASS_IDENTIFIER);
+				return Token(TOK_IDENTIFIER, keyword, CLASS_IDENTIFIER, line);
 				break;
 			case KEY_IF:
-				return Token(TOK_IF, "if", CLASS_STATEMENT);
+				return Token(TOK_IF, "if", CLASS_STATEMENT, line);
 				break;
 			case KEY_INCLUDE:
-				return Token(TOK_INCLUDE, "inc", CLASS_STATEMENT);
+				return Token(TOK_INCLUDE, "inc", CLASS_STATEMENT, line);
 				break;
 			case KEY_ELSE:
-				return Token(TOK_ELSE, "else", CLASS_STATEMENT);
+				return Token(TOK_ELSE, "else", CLASS_STATEMENT, line);
 				break;
 			case KEY_PRIVATE:
-				return Token(TOK_PRIVATE, "prv", CLASS_GENERIC);
+				return Token(TOK_PRIVATE, "prv", CLASS_GENERIC, line);
 				break;
 			case KEY_PUBLIC:
-				return Token(TOK_PUBLIC, "pub", CLASS_GENERIC);
+				return Token(TOK_PUBLIC, "pub", CLASS_GENERIC, line);
 				break;
 			case KEY_TRUE:
-				return Token(TOK_TRUE, "true", CLASS_GENERIC);
+				return Token(TOK_TRUE, "true", CLASS_GENERIC, line);
 				break;
 			case KEY_FALSE:
-				return Token(TOK_FALSE, "false", CLASS_GENERIC);
+				return Token(TOK_FALSE, "false", CLASS_GENERIC, line);
 				break;
 			case KEY_INT:
-				return Token(TOK_INT, "int", CLASS_TYPE);
+				return Token(TOK_INT, "int", CLASS_TYPE, line);
 				break;
 			case KEY_STRING:
-				return Token(TOK_STRING, "string", CLASS_TYPE);
+				return Token(TOK_STRING, "string", CLASS_TYPE, line);
 				break;
 			case KEY_VOID:
-				return Token(TOK_VOID, "void", CLASS_TYPE);
+				return Token(TOK_VOID, "void", CLASS_TYPE, line);
 				break;
 		}
 	}
@@ -163,64 +167,64 @@ Token Lexer::GetNextToken() {
 			break;
 		}
 		case '"': {
-			Token t(TOK_STRING_VALUE, GetNextString(), CLASS_LITERAL);
+			Token t(TOK_STRING_VALUE, GetNextString(), CLASS_LITERAL, line);
 			t.SetLiteral(true);
 			return t;
 			break;
 		}
 		case '(':
-			return Token(TOK_LPAREN, "(", CLASS_GENERIC);
+			return Token(TOK_LPAREN, "(", CLASS_GENERIC, line);
 			break;
 		case ')':
-			return Token(TOK_RPAREN, ")", CLASS_GENERIC);
+			return Token(TOK_RPAREN, ")", CLASS_GENERIC, line);
 			break;
 		case '{':
-			return Token(TOK_LBRACE, "{", CLASS_GENERIC);
+			return Token(TOK_LBRACE, "{", CLASS_GENERIC, line);
 			break;
 		case '}':
-			return Token(TOK_RBRACE, "}", CLASS_GENERIC);
+			return Token(TOK_RBRACE, "}", CLASS_GENERIC, line);
 			break;
 		case '=':
 			if (contents[place + 1] == '=') { // then it is an equality sign
 				++place; // skip other sign
-				return Token(TOK_EQUALITY, "==", CLASS_EQUALITY);
+				return Token(TOK_EQUALITY, "==", CLASS_EQUALITY, line);
 			} else { // it's a regular assignment operator
-				return Token(TOK_EQUALS, "=", CLASS_GENERIC);
+				return Token(TOK_EQUALS, "=", CLASS_GENERIC, line);
 			}
 			break;
 		case ',':
-			return Token(TOK_COMMA, ",", CLASS_GENERIC);
+			return Token(TOK_COMMA, ",", CLASS_GENERIC, line);
 			break;
 		case ';':
-			return Token(TOK_SEMICOLON, ";", CLASS_GENERIC);
+			return Token(TOK_SEMICOLON, ";", CLASS_GENERIC, line);
 			break;
 		case '>':
 			if (contents[place + 1] == '=') {
 				++place;
-				return Token(TOK_GREATER_EQ, ">=", CLASS_EQUALITY);
+				return Token(TOK_GREATER_EQ, ">=", CLASS_EQUALITY, line);
 			} else {
-				return Token(TOK_GREATER, ">", CLASS_EQUALITY);
+				return Token(TOK_GREATER, ">", CLASS_EQUALITY, line);
 			}
 			break;
 		case '<': {
 			if (contents[place + 1] == '=') {
 				++place;
-				return Token(TOK_LESS_EQ, "<=", CLASS_EQUALITY);
+				return Token(TOK_LESS_EQ, "<=", CLASS_EQUALITY, line);
 			} else {
-				return Token(TOK_LESS, "<", CLASS_EQUALITY);
+				return Token(TOK_LESS, "<", CLASS_EQUALITY, line);
 			}
 			break;
 		}
 		case '+':
 			// TODO: check for ++
-			return Token(TOK_PLUS, "+", CLASS_MATH_OPERATION);
+			return Token(TOK_PLUS, "+", CLASS_MATH_OPERATION, line);
 			break;
 		case '[':
-			return Token(TOK_LBRACKET, "[", CLASS_GENERIC);
+			return Token(TOK_LBRACKET, "[", CLASS_GENERIC, line);
 			break;
 		case ']':
-			return Token(TOK_RBRACKET, "]", CLASS_GENERIC);
+			return Token(TOK_RBRACKET, "]", CLASS_GENERIC, line);
 			break;
 	}
-	return Token(TOK_NONE, "---could not decode token (line " + std::to_string(line) + "!---", CLASS_GENERIC);
+	return Token(TOK_NONE, "---could not decode token (line " + std::to_string(line) + "!---", CLASS_GENERIC, line);
 }

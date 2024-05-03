@@ -12,6 +12,8 @@ enum AST_NODE_TYPES {
 	NODE_VARIABLE_INITIALIZATION,
 	NODE_FUNCTION_DECLARATION,
 	NODE_FUNCTION_DEFINITION,
+	NODE_TRANSLATION_UNIT,
+	NODE_IF_STATEMENT,
 };
 
 enum EXPRESSION_TYPES {
@@ -29,7 +31,8 @@ enum VARIABLE_TYPES {
 	TYPE_INT,
 	TYPE_VOID,
 	TYPE_BOOL,
-	TYPE_FLOAT
+	TYPE_FLOAT,
+	TYPE_STRING,
 };
 
 class AstNode {
@@ -41,19 +44,34 @@ public:
 		childNodes.push_back(node);
 	}
 	enum AST_NODE_TYPES GetNodeType() {return type;}
+	std::vector<std::shared_ptr<AstNode>>& ChildNodes() {return childNodes;}
 private:
 	enum AST_NODE_TYPES type;
 	std::vector<std::shared_ptr<AstNode>> childNodes;
 };
 
-class FunctionDeclaration : public AstNode {
+class TranslationUnit : public AstNode {
+public:
+	TranslationUnit() : AstNode(NODE_TRANSLATION_UNIT) {}
+};
+
+/*class FunctionDeclaration : public AstNode {
 public:
 	FunctionDeclaration(std::vector<enum VARIABLE_TYPES> argTypes) : AstNode(NODE_FUNCTION_DECLARATION) {}
-};
+};*/
 
 class FunctionDefinition : public AstNode {
 public:
-	FunctionDefinition(std::vector<std::pair<enum VARIABLE_TYPES, std::string>> args) : AstNode(NODE_FUNCTION_DEFINITION) {}
+	FunctionDefinition(enum VARIABLE_TYPES t, std::string name, std::vector<std::pair<enum VARIABLE_TYPES, std::string>> args, bool p) : AstNode(NODE_FUNCTION_DEFINITION) {}
+private:
+	enum VARIABLE_TYPES returnType;
+};
+
+class VariableDeclaration : public AstNode {
+public:
+	VariableDeclaration(enum VARIABLE_TYPES t, std::string name, bool p) : AstNode(NODE_FUNCTION_DEFINITION) {}
+private:
+	
 };
 
 class Expression : public AstNode {
@@ -61,6 +79,13 @@ public:
 	Expression() : AstNode(NODE_EXPRESSION) {}
 	virtual int Evaluate() {return 0;};
 private:
+};
+
+class IfStatement : public AstNode {
+public:
+	IfStatement(std::shared_ptr<Expression> cond) : AstNode(NODE_IF_STATEMENT) {condition = cond;}
+private:
+	std::shared_ptr<Expression> condition;
 };
 
 class IntLiteral : public Expression {
@@ -99,15 +124,18 @@ class Token;
 
 class Parser {
 public:
-	std::vector<std::shared_ptr<AstNode>> ParseTokens(std::vector<Token> ntokens);
+	std::shared_ptr<AstNode> ParseTokens(std::vector<Token> ntokens);
 private:
 	std::vector<Token> tokens;
 	size_t place = 0;
-	void ParseFileScope(std::vector<std::shared_ptr<AstNode>> baseNode);
-	void ParseNewScope(std::vector<std::shared_ptr<AstNode>> baseNode);
-	void ParseBlockScope(std::vector<std::shared_ptr<AstNode>> baseNode);
-	void ParseNextExpression(std::vector<std::shared_ptr<AstNode>> baseNode);
-	void ParseNewIdentifier(std::vector<std::shared_ptr<AstNode>> baseNode);
+	std::shared_ptr<AstNode> ParseFileScope(std::shared_ptr<TranslationUnit>);
+	std::shared_ptr<AstNode> ParseFunctionScope();
+	std::shared_ptr<AstNode> ParseNewIdentifier();
+	std::shared_ptr<FunctionDefinition> ParseFunctionDeclaration(enum VARIABLE_TYPES retTyp, std::string declName);
 	Token EatToken(enum TOKEN_TYPES t);
 	Token EatTokClass(enum TOKEN_CLASS c);
+	bool EatTokenOptional(enum TOKEN_TYPES t);
+	enum VARIABLE_TYPES TurnTokTypeToVarType(enum TOKEN_TYPES t);
+	void ParseFunctionScope(std::shared_ptr<FunctionDefinition> func);
+	void ParseIfStatement(std::shared_ptr<AstNode> parNode);
 };

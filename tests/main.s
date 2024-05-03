@@ -6,12 +6,12 @@ pub int a;
 int f;
 
 void start(int argc, str argv) {
-	if (e == argc) {
-		hello(argc);
-		if (a == a) {
-			
-		}
-	}
+	//if (e == argc) {
+	//	hello(argc);
+	//	if (a == a) {
+	//		
+	//	}
+	//}
 }
 
 int hello(int z, int a) {

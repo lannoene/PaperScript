@@ -63,12 +63,20 @@ enum TOKEN_CLASS {
 	CLASS_MATH_OPERATION,
 };
 
+union VALUE {
+	int vInt;
+};
+
 class Token {
 public:
-	Token(enum TOKEN_TYPES ntype, std::string ident, enum TOKEN_CLASS c) {
+	Token(enum TOKEN_TYPES ntype, std::string ident, enum TOKEN_CLASS c, int line) {
 		type = ntype;
 		identifier = ident;
 		tclass = c;
+		lineNum = line;
+	}
+	Token(enum TOKEN_TYPES ntype, std::string ident, int intLiteralValue, enum TOKEN_CLASS c, int line) : Token(ntype, ident, c, line) {
+		value.vInt = intLiteralValue;
 	}
 	enum TOKEN_TYPES GetType() {return type;}
 	std::string GetIdentifier() {return identifier;}
@@ -76,11 +84,24 @@ public:
 		isLiteral = l;
 	}
 	enum TOKEN_CLASS GetClass() {return tclass;}
+	union VALUE GetLiteralValue() {return value;}
+	operator==(enum TOKEN_TYPES t) {
+		return GetType() == t;
+	}
+	operator==(enum TOKEN_CLASS c) {
+		return GetClass() == c;
+	}
+	operator!=(enum TOKEN_TYPES t) {
+		return GetType() != t;
+	}
+	int GetLineNumber() {return lineNum;}
 private:
 	enum TOKEN_TYPES type;
 	enum TOKEN_CLASS tclass;
 	std::string identifier;
 	bool isLiteral = false;
+	union VALUE value;
+	int lineNum;
 };
 
 class Lexer {
