@@ -1,0 +1,17 @@
+<htmL>
+	<body>
+		<p>
+		
+		</p>
+		<script src="gfxLib.js"></script>
+		<script>
+			async function fun() {
+				const response = await fetch("mod.wasm");
+				const buffer = await response.arrayBuffer();
+				const obj = await WebAssembly.instantiate(buffer);
+				obj.instance.exports.start();
+			}
+			fun();
+		</script>
+	</body>
+</htmL>

@@ -1,0 +1,9 @@
+//inc "print.s"
+
+int add(int a, int b) {
+	ret a + b;
+}
+
+void start() {
+	printInt(add(1, 1));
+}

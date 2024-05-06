@@ -1,0 +1,43 @@
+	.text
+	.file	"e.cpp"
+	.section	.text.__original_main,"",@
+	.hidden	__original_main                 # -- Begin function __original_main
+	.globl	__original_main
+	.type	__original_main,@function
+__original_main:                        # @__original_main
+	.functype	__original_main () -> (i32)
+# %bb.0:
+	i32.const	0
+                                        # fallthrough-return
+	end_function
+.Lfunc_end0:
+	.size	__original_main, .Lfunc_end0-__original_main
+                                        # -- End function
+	.section	.text.main,"",@
+	.hidden	main                            # -- Begin function main
+	.globl	main
+	.type	main,@function
+main:                                   # @main
+	.functype	main (i32, i32) -> (i32)
+# %bb.0:
+	call	__original_main
+                                        # fallthrough-return
+	end_function
+.Lfunc_end1:
+	.size	main, .Lfunc_end1-main
+                                        # -- End function
+	.no_dead_strip	__main_void
+	.globl	__main_void
+	.type	__main_void,@function
+.set __main_void, __original_main
+	.ident	"clang version 11.0.0 (https://github.com/msys2/MSYS2-packages 9ef552a3c4cc9410d2b1fb6f22a0cdda3bc09a64)"
+	.section	.custom_section.producers,"",@
+	.int8	1
+	.int8	12
+	.ascii	"processed-by"
+	.int8	1
+	.int8	5
+	.ascii	"clang"
+	.int8	89
+	.ascii	"11.0.0 (https://github.com/msys2/MSYS2-packages 9ef552a3c4cc9410d2b1fb6f22a0cdda3bc09a64)"
+	.section	.text.main,"",@

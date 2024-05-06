@@ -105,6 +105,8 @@ enum KEYWORD_IDS Lexer::GetKeywordId(std::string keyword) {
 		return KEY_STRING;
 	} else if (keyword == "void") {
 		return KEY_VOID;
+	} else if (keyword == "ret") {
+		return KEY_RETURN;
 	}
 	return KEY_UNKNOWN;
 }
@@ -117,43 +119,35 @@ Token Lexer::GetNextToken() {
 	// if is alphanumeric, then it may be a keyword
 	if (isalnum(curChr)) {
 		std::string keyword = GetStrUntilNonAlpha();
-		if (isdigit(curChr)) {
+		if (isdigit(curChr)) { // TODO: conv to float later using std::stof with checking for exception
 			return Token(TOK_INT_VALUE, keyword, std::stoi(keyword), CLASS_LITERAL, line);
 		}
 		
 		switch (GetKeywordId(keyword)) {
 			case KEY_UNKNOWN:
-				return Token(TOK_IDENTIFIER, keyword, CLASS_IDENTIFIER, line);
-				break;
+				return FormatToken(TOK_IDENTIFIER, CLASS_IDENTIFIER, keyword);
 			case KEY_IF:
-				return Token(TOK_IF, "if", CLASS_STATEMENT, line);
-				break;
+				return FormatToken(TOK_IF, CLASS_STATEMENT);
 			case KEY_INCLUDE:
-				return Token(TOK_INCLUDE, "inc", CLASS_STATEMENT, line);
-				break;
+				return FormatToken(TOK_INCLUDE, CLASS_STATEMENT);
 			case KEY_ELSE:
-				return Token(TOK_ELSE, "else", CLASS_STATEMENT, line);
-				break;
+				return FormatToken(TOK_ELSE, CLASS_STATEMENT);
 			case KEY_PRIVATE:
-				return Token(TOK_PRIVATE, "prv", CLASS_GENERIC, line);
-				break;
+				return FormatToken(TOK_PRIVATE, CLASS_GENERIC);
 			case KEY_PUBLIC:
-				return Token(TOK_PUBLIC, "pub", CLASS_GENERIC, line);
-				break;
+				return FormatToken(TOK_PUBLIC, CLASS_GENERIC);
 			case KEY_TRUE:
-				return Token(TOK_TRUE, "true", CLASS_GENERIC, line);
-				break;
+				return FormatToken(TOK_TRUE, CLASS_GENERIC);
 			case KEY_FALSE:
-				return Token(TOK_FALSE, "false", CLASS_GENERIC, line);
-				break;
+				return FormatToken(TOK_FALSE, CLASS_GENERIC);
 			case KEY_INT:
-				return Token(TOK_INT, "int", CLASS_TYPE, line);
-				break;
+				return FormatToken(TOK_INT, CLASS_TYPE);
 			case KEY_STRING:
-				return Token(TOK_STRING, "string", CLASS_TYPE, line);
-				break;
+				return FormatToken(TOK_STRING, CLASS_TYPE);
 			case KEY_VOID:
-				return Token(TOK_VOID, "void", CLASS_TYPE, line);
+				return FormatToken(TOK_VOID, CLASS_TYPE);
+			case KEY_RETURN:
+				return FormatToken(TOK_RETURN, CLASS_TYPE);
 				break;
 		}
 	}
@@ -170,26 +164,29 @@ Token Lexer::GetNextToken() {
 			Token t(TOK_STRING_VALUE, GetNextString(), CLASS_LITERAL, line);
 			t.SetLiteral(true);
 			return t;
-			break;
 		}
 		case '(':
 			return Token(TOK_LPAREN, "(", CLASS_GENERIC, line);
-			break;
 		case ')':
 			return Token(TOK_RPAREN, ")", CLASS_GENERIC, line);
-			break;
 		case '{':
 			return Token(TOK_LBRACE, "{", CLASS_GENERIC, line);
-			break;
 		case '}':
 			return Token(TOK_RBRACE, "}", CLASS_GENERIC, line);
-			break;
 		case '=':
 			if (contents[place + 1] == '=') { // then it is an equality sign
 				++place; // skip other sign
 				return Token(TOK_EQUALITY, "==", CLASS_EQUALITY, line);
 			} else { // it's a regular assignment operator
 				return Token(TOK_EQUALS, "=", CLASS_GENERIC, line);
+			}
+			break;
+		case '!':
+			if (contents[place + 1] == '=') { // then it is an equality sign
+				++place; // skip other sign
+				return FormatToken(TOK_NOT_EQUALITY, CLASS_EQUALITY);
+			} else { // it's a regular assignment operator
+				return FormatToken(TOK_NOT, CLASS_GENERIC);
 			}
 			break;
 		case ',':
@@ -205,7 +202,6 @@ Token Lexer::GetNextToken() {
 			} else {
 				return Token(TOK_GREATER, ">", CLASS_EQUALITY, line);
 			}
-			break;
 		case '<': {
 			if (contents[place + 1] == '=') {
 				++place;
@@ -213,18 +209,35 @@ Token Lexer::GetNextToken() {
 			} else {
 				return Token(TOK_LESS, "<", CLASS_EQUALITY, line);
 			}
-			break;
 		}
 		case '+':
 			// TODO: check for ++
 			return Token(TOK_PLUS, "+", CLASS_MATH_OPERATION, line);
-			break;
+		case '-':
+			return FormatToken(TOK_MINUS, CLASS_MATH_OPERATION);
 		case '[':
 			return Token(TOK_LBRACKET, "[", CLASS_GENERIC, line);
-			break;
 		case ']':
 			return Token(TOK_RBRACKET, "]", CLASS_GENERIC, line);
-			break;
+		case '*':
+			return FormatToken(TOK_STAR, CLASS_GENERIC);
+		case '/':
+			return FormatToken(TOK_FSLASH, CLASS_GENERIC);
+		case '&': {
+			if (contents[place + 1] == '&') {
+				return FormatToken(TOK_BIT_AND, CLASS_GENERIC);
+			} else {
+				return FormatToken(TOK_AND, CLASS_GENERIC);
+			}
+		}
 	}
 	return Token(TOK_NONE, "---could not decode token (line " + std::to_string(line) + "!---", CLASS_GENERIC, line);
+}
+
+Token Lexer::FormatToken(enum token_types t, enum token_class c) {
+	return Token(t, tokIden[t], c, line);
+}
+
+Token Lexer::FormatToken(enum token_types t, enum token_class c, std::string iden) {
+	return Token(t, iden, c, line);
 }

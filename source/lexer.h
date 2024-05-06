@@ -5,7 +5,7 @@
 #include <memory>
 #include <unordered_map>
 
-enum TOKEN_TYPES {
+enum token_types {
 	TOK_UNKOWN,
 	TOK_NONE,
 	TOK_LPAREN,
@@ -14,6 +14,7 @@ enum TOKEN_TYPES {
 	TOK_RBRACE,
 	TOK_EQUALS,
 	TOK_EQUALITY,
+	TOK_NOT_EQUALITY,
 	TOK_GREATER,
 	TOK_LESS,
 	TOK_GREATER_EQ,
@@ -37,6 +38,53 @@ enum TOKEN_TYPES {
 	TOK_FALSE,
 	TOK_LBRACKET,
 	TOK_RBRACKET,
+	TOK_STAR,
+	TOK_FSLASH,
+	TOK_NOT,
+	TOK_BIT_AND,
+	TOK_AND,
+	TOK_RETURN,
+};
+
+inline const char *tokIden[] = {
+	"[[unkown]]",
+	"[[none]]",
+	"(",
+	")",
+	"{",
+	"}",
+	"=",
+	"==",
+	"!=",
+	">",
+	"<",
+	">=",
+	"<=",
+	"+",
+	"-",
+	"int",
+	"[[int value]]",
+	"str",
+	"[[str value]]",
+	"void",
+	",",
+	";",
+	"if",
+	"inc",
+	"else",
+	"[[identifier]]",
+	"prv",
+	"pub",
+	"true",
+	"false",
+	"[",
+	"]",
+	"*",
+	"/",
+	"!",
+	"&",
+	"&&",
+	"ret",
 };
 
 enum KEYWORD_IDS {
@@ -50,10 +98,11 @@ enum KEYWORD_IDS {
 	KEY_FALSE,
 	KEY_INT,
 	KEY_STRING,
-	KEY_VOID
+	KEY_VOID,
+	KEY_RETURN,
 };
 
-enum TOKEN_CLASS {
+enum token_class {
 	CLASS_GENERIC,
 	CLASS_EQUALITY,
 	CLASS_LITERAL,
@@ -69,35 +118,36 @@ union VALUE {
 
 class Token {
 public:
-	Token(enum TOKEN_TYPES ntype, std::string ident, enum TOKEN_CLASS c, int line) {
+	Token(enum token_types ntype, std::string ident, enum token_class c, int line) {
 		type = ntype;
 		identifier = ident;
 		tclass = c;
 		lineNum = line;
 	}
-	Token(enum TOKEN_TYPES ntype, std::string ident, int intLiteralValue, enum TOKEN_CLASS c, int line) : Token(ntype, ident, c, line) {
+	Token(enum token_types ntype, std::string ident, int intLiteralValue, enum token_class c, int line) : Token(ntype, ident, c, line) {
 		value.vInt = intLiteralValue;
 	}
-	enum TOKEN_TYPES GetType() {return type;}
+	Token() = default;
+	enum token_types GetType() {return type;}
 	std::string GetIdentifier() {return identifier;}
 	void SetLiteral(bool l) {
 		isLiteral = l;
 	}
-	enum TOKEN_CLASS GetClass() {return tclass;}
+	enum token_class GetClass() {return tclass;}
 	union VALUE GetLiteralValue() {return value;}
-	operator==(enum TOKEN_TYPES t) {
+	bool operator==(enum token_types t) {
 		return GetType() == t;
 	}
-	operator==(enum TOKEN_CLASS c) {
+	bool operator==(enum token_class c) {
 		return GetClass() == c;
 	}
-	operator!=(enum TOKEN_TYPES t) {
+	bool operator!=(enum token_types t) {
 		return GetType() != t;
 	}
 	int GetLineNumber() {return lineNum;}
 private:
-	enum TOKEN_TYPES type;
-	enum TOKEN_CLASS tclass;
+	enum token_types type;
+	enum token_class tclass;
 	std::string identifier;
 	bool isLiteral = false;
 	union VALUE value;
@@ -119,4 +169,6 @@ private:
 	void SkipWhitespace();
 	void AdvancePlace();
 	std::string GetStrUntilNonAlpha();
+	Token FormatToken(enum token_types t, enum token_class c);
+	Token FormatToken(enum token_types t, enum token_class c, std::string iden);
 };

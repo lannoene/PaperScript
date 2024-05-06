@@ -8,23 +8,25 @@
 enum AST_NODE_TYPES {
 	NODE_UNKOWN,
 	NODE_EXPRESSION,
-	NODE_VARIABLE_DECLARATION,
-	NODE_VARIABLE_INITIALIZATION,
-	NODE_FUNCTION_DECLARATION,
-	NODE_FUNCTION_DEFINITION,
+	NODE_DECLARATION,
 	NODE_TRANSLATION_UNIT,
 	NODE_IF_STATEMENT,
+	NODE_RETURN,
 };
 
-enum EXPRESSION_TYPES {
+enum expression_types {
+	EXP_ERROR,
 	EXP_FUNCTION_CALL,
-	EXP_LITERAL,
+	EXP_PRIMARY,
 	EXP_VARIABLE,
 	EXP_ADDITION,
 	EXP_SUBTRACTION,
 	EXP_MULTIPLICATION,
 	EXP_DIVISION,
 	EXP_EXPONENTIATION,
+	EXP_ASSIGNMENT,
+	EXP_EQUALITY,
+	EXP_NOT_EQUALITY,
 };
 
 enum VARIABLE_TYPES {
@@ -40,102 +42,134 @@ public:
 	AstNode(enum AST_NODE_TYPES ntype) {
 		type = ntype;
 	}
-	void AddChildNode(std::shared_ptr<AstNode> node) {
-		childNodes.push_back(node);
-	}
 	enum AST_NODE_TYPES GetNodeType() {return type;}
-	std::vector<std::shared_ptr<AstNode>>& ChildNodes() {return childNodes;}
 private:
 	enum AST_NODE_TYPES type;
-	std::vector<std::shared_ptr<AstNode>> childNodes;
 };
 
 class TranslationUnit : public AstNode {
 public:
 	TranslationUnit() : AstNode(NODE_TRANSLATION_UNIT) {}
+	void AddChildNode(std::shared_ptr<AstNode> c) {
+		childNodes.push_back(c);
+	}
+	std::vector<std::shared_ptr<AstNode>> childNodes;
 };
 
-/*class FunctionDeclaration : public AstNode {
+class Declaration : public AstNode {
 public:
-	FunctionDeclaration(std::vector<enum VARIABLE_TYPES> argTypes) : AstNode(NODE_FUNCTION_DECLARATION) {}
-};*/
-
-class FunctionDefinition : public AstNode {
-public:
-	FunctionDefinition(enum VARIABLE_TYPES t, std::string name, std::vector<std::pair<enum VARIABLE_TYPES, std::string>> args, bool p) : AstNode(NODE_FUNCTION_DEFINITION) {}
-private:
-	enum VARIABLE_TYPES returnType;
-};
-
-class VariableDeclaration : public AstNode {
-public:
-	VariableDeclaration(enum VARIABLE_TYPES t, std::string name, bool p) : AstNode(NODE_FUNCTION_DEFINITION) {}
+	enum VARIABLE_TYPES typ;
+	std::string ident;
+	bool isFunc, isPublic;
+	// var
+	Declaration(enum VARIABLE_TYPES t, std::string i, bool p) : AstNode(NODE_DECLARATION) {
+		isFunc = false;
+		typ = t;
+		ident = i;
+		isPublic = p;
+	}
+	struct {
+		//std::vector<std::shared_ptr<Expression> initialExp;
+	} var;
+	// func
+	Declaration(enum VARIABLE_TYPES t, std::string i, bool p, std::vector<std::pair<enum VARIABLE_TYPES, std::string>> e, std::vector<std::shared_ptr<AstNode>> n) : Declaration(t, i, p) {
+		func.params = e;
+		func.childNodes = n;
+		isFunc = true;
+	}
+	struct {
+		std::vector<std::pair<enum VARIABLE_TYPES, std::string>> params;
+		std::vector<std::shared_ptr<AstNode>> childNodes;
+	} func;
+	
 private:
 	
 };
 
 class Expression : public AstNode {
 public:
-	Expression() : AstNode(NODE_EXPRESSION) {}
-	virtual int Evaluate() {return 0;};
+	Expression(enum expression_types t) : AstNode(NODE_EXPRESSION) {
+		expType = t;
+	}
+	Expression(enum expression_types t, std::shared_ptr<Expression> e1) : Expression(t) {
+		child1 = e1;
+	}
+	Expression(enum expression_types t, std::shared_ptr<Expression> e1, std::shared_ptr<Expression> e2) : Expression(t, e1) {
+		child2 = e2;
+	}
+	Expression(enum expression_types t, std::shared_ptr<Expression> e1, std::shared_ptr<Expression> e2, std::shared_ptr<Expression> e3) : Expression(t, e1, e2) {
+		child3 = e3;
+	}
+	std::shared_ptr<Expression> child1;
+	std::shared_ptr<Expression> child2;
+	std::shared_ptr<Expression> child3;
+	std::string idenName;
+	int iVal;
+	float fVal;
+	std::string sVal;
+	enum VARIABLE_TYPES varType;
+	enum VARIABLE_TYPES literalType;
+	enum expression_types ExpType() {return expType;}
+private:
+	enum expression_types expType;
+};
+
+class FunctionCall : public Expression {
+public:
+	FunctionCall(std::vector<std::shared_ptr<Expression>> a) : Expression(EXP_FUNCTION_CALL) {
+		args = a;
+	}
+	std::vector<std::shared_ptr<Expression>> args;
 private:
 };
 
 class IfStatement : public AstNode {
 public:
 	IfStatement(std::shared_ptr<Expression> cond) : AstNode(NODE_IF_STATEMENT) {condition = cond;}
-private:
+	
+	std::vector<std::shared_ptr<AstNode>> childNodes;
 	std::shared_ptr<Expression> condition;
-};
-
-class IntLiteral : public Expression {
-public:
-	IntLiteral(int i) {value = i;}
-	virtual int Evaluate() {return value;};
+	bool hasElse = false;
+	std::vector<std::shared_ptr<AstNode>> elseChildNodes;
 private:
-	int value;
 };
 
-class AddExpression : public Expression {
+class ReturnStatement : public AstNode {
 public:
-	AddExpression(Expression exp1, Expression exp2) {
-		childExp1 = exp1;
-		childExp2 = exp2;
-	}
-	virtual int Evaluate() {return childExp1.Evaluate() + childExp2.Evaluate();};
+	ReturnStatement(std::shared_ptr<Expression> e) : AstNode(NODE_RETURN) {expr = e;}
+	std::shared_ptr<Expression> expr;
 private:
-	Expression childExp1;
-	Expression childExp2;
 };
-
-class SubtractExpression : public Expression {
-public:
-	SubtractExpression(Expression exp1, Expression exp2) {
-		childExp1 = exp1;
-		childExp2 = exp2;
-	}
-	virtual int Evaluate() {return childExp1.Evaluate() - childExp2.Evaluate();};
-private:
-	Expression childExp1;
-	Expression childExp2;
-};
-
-class Token;
 
 class Parser {
 public:
-	std::shared_ptr<AstNode> ParseTokens(std::vector<Token> ntokens);
+	std::shared_ptr<TranslationUnit> ParseTokens(std::vector<Token> ntokens);
 private:
 	std::vector<Token> tokens;
 	size_t place = 0;
-	std::shared_ptr<AstNode> ParseFileScope(std::shared_ptr<TranslationUnit>);
+	std::shared_ptr<TranslationUnit> ParseFileScope();
 	std::shared_ptr<AstNode> ParseFunctionScope();
-	std::shared_ptr<AstNode> ParseNewIdentifier();
-	std::shared_ptr<FunctionDefinition> ParseFunctionDeclaration(enum VARIABLE_TYPES retTyp, std::string declName);
-	Token EatToken(enum TOKEN_TYPES t);
-	Token EatTokClass(enum TOKEN_CLASS c);
-	bool EatTokenOptional(enum TOKEN_TYPES t);
-	enum VARIABLE_TYPES TurnTokTypeToVarType(enum TOKEN_TYPES t);
-	void ParseFunctionScope(std::shared_ptr<FunctionDefinition> func);
-	void ParseIfStatement(std::shared_ptr<AstNode> parNode);
+	std::shared_ptr<AstNode> ParseGlobalIdentifier();
+	std::shared_ptr<Declaration> ParseFunctionDeclaration(enum VARIABLE_TYPES retTyp, std::string declName, bool pub);
+	Token EatToken(enum token_types t);
+	Token EatTokClass(enum token_class c);
+	bool EatTokenOptional(enum token_types t);
+	enum VARIABLE_TYPES TurnTokTypeToVarType(enum token_types t);
+	std::shared_ptr<AstNode> ParseIfStatement();
+	std::vector<std::shared_ptr<AstNode>> ParseBlockScope();
+	std::vector<Token> GetTokensInsideDelimiters(enum token_types start, enum token_types ending);
+	std::shared_ptr<Expression> ParseScopedIdentifier();
+	std::shared_ptr<Expression> ParseExpression();
+	std::shared_ptr<Expression> CreateExpression();
+	std::shared_ptr<Expression> ParseAssignmentExpression();
+	std::shared_ptr<Expression> ParsePrimaryExpression();
+	std::shared_ptr<Expression> ParseAdditiveExpression();
+	std::vector<std::shared_ptr<Expression>> ParseFunctionInputs();
+	std::shared_ptr<Expression> ParseMultiplyExpression();
+	std::shared_ptr<Expression> ParseEqualityExpression();
+	Token GetNextToken();
+	void AstPrintAst(std::shared_ptr<AstNode> parNode, int vPlace);
+	void AstPrintExpression(std::shared_ptr<Expression> parNode, int vPlace);
+	void AstPrintDeclaration(std::shared_ptr<Declaration> parNode, int vPlace);
+	void AstPrintIfStatement(std::shared_ptr<IfStatement> parNode, int vPlace);
 };
