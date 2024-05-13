@@ -29,6 +29,7 @@ enum token_types {
 	TOK_COMMA,
 	TOK_SEMICOLON,
 	TOK_IF,
+	TOK_WHILE,
 	TOK_INCLUDE,
 	TOK_ELSE,
 	TOK_IDENTIFIER,
@@ -44,6 +45,10 @@ enum token_types {
 	TOK_BIT_AND,
 	TOK_AND,
 	TOK_RETURN,
+	TOK_BREAK,
+	TOK_REMAINDER,
+	TOK_FLOAT,
+	TOK_FLOAT_VALUE
 };
 
 inline const char *tokIden[] = {
@@ -70,6 +75,7 @@ inline const char *tokIden[] = {
 	",",
 	";",
 	"if",
+	"while",
 	"inc",
 	"else",
 	"[[identifier]]",
@@ -85,6 +91,10 @@ inline const char *tokIden[] = {
 	"&",
 	"&&",
 	"ret",
+	"break",
+	"%",
+	"float",
+	"[[float value]]"
 };
 
 enum KEYWORD_IDS {
@@ -100,6 +110,8 @@ enum KEYWORD_IDS {
 	KEY_STRING,
 	KEY_VOID,
 	KEY_RETURN,
+	KEY_WHILE,
+	KEY_FLOAT,
 };
 
 enum token_class {
@@ -114,6 +126,7 @@ enum token_class {
 
 union VALUE {
 	int vInt;
+	float vFloat;
 };
 
 class Token {
@@ -126,6 +139,9 @@ public:
 	}
 	Token(enum token_types ntype, std::string ident, int intLiteralValue, enum token_class c, int line) : Token(ntype, ident, c, line) {
 		value.vInt = intLiteralValue;
+	}
+	Token(enum token_types ntype, std::string ident, float fltLiteralValue, enum token_class c, int line) : Token(ntype, ident, c, line) {
+		value.vFloat = fltLiteralValue;
 	}
 	Token() = default;
 	enum token_types GetType() {return type;}

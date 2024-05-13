@@ -11,6 +11,7 @@ enum AST_NODE_TYPES {
 	NODE_DECLARATION,
 	NODE_TRANSLATION_UNIT,
 	NODE_IF_STATEMENT,
+	NODE_WHILE_LOOP,
 	NODE_RETURN,
 };
 
@@ -27,6 +28,9 @@ enum expression_types {
 	EXP_ASSIGNMENT,
 	EXP_EQUALITY,
 	EXP_NOT_EQUALITY,
+	EXP_LESS,
+	EXP_GREATER,
+	EXP_REMAINDER,
 };
 
 enum VARIABLE_TYPES {
@@ -120,6 +124,7 @@ public:
 		args = a;
 	}
 	std::vector<std::shared_ptr<Expression>> args;
+	bool valueUsed = true;
 private:
 };
 
@@ -127,11 +132,19 @@ class IfStatement : public AstNode {
 public:
 	IfStatement(std::shared_ptr<Expression> cond) : AstNode(NODE_IF_STATEMENT) {condition = cond;}
 	
+	bool hasElse = false;
 	std::vector<std::shared_ptr<AstNode>> childNodes;
 	std::shared_ptr<Expression> condition;
-	bool hasElse = false;
 	std::vector<std::shared_ptr<AstNode>> elseChildNodes;
 private:
+};
+
+class WhileLoop : public AstNode {
+public:
+	WhileLoop(std::shared_ptr<Expression> cond) : AstNode(NODE_WHILE_LOOP) {condition = cond;}
+	
+	std::vector<std::shared_ptr<AstNode>> childNodes;
+	std::shared_ptr<Expression> condition;
 };
 
 class ReturnStatement : public AstNode {
@@ -167,6 +180,8 @@ private:
 	std::vector<std::shared_ptr<Expression>> ParseFunctionInputs();
 	std::shared_ptr<Expression> ParseMultiplyExpression();
 	std::shared_ptr<Expression> ParseEqualityExpression();
+	std::shared_ptr<Expression> ParseInequalityExpression();
+	std::shared_ptr<AstNode> ParseWhileLoop();
 	Token GetNextToken();
 	void AstPrintAst(std::shared_ptr<AstNode> parNode, int vPlace);
 	void AstPrintExpression(std::shared_ptr<Expression> parNode, int vPlace);

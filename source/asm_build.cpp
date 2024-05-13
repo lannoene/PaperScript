@@ -47,12 +47,15 @@ void AsmBuilder::GenerateWat(std::shared_ptr<TranslationUnit> file) {
 
 void AsmBuilder::AddJsApi() {
 	out += "(import \"imports\" \"log\" (func $printInt (param i32)))"; // print a single integer
+	out += "(import \"graphics\" \"draw\" (func $draw (param i32)(param i32)(param i32)))"; // draw sun
+	out += "(import \"graphics\" \"reqNextFrame\" (func $finishDrawing))"; // req next frame
+	out += "(import \"graphics\" \"clearScreen\" (func $clearScreen))"; // clear frame
 }
 
 void AsmBuilder::HandleGlobalDeclaration(std::shared_ptr<Declaration> gDecl) {
 	if (gDecl->isFunc) {
 		out += "(func $" + gDecl->ident;
-		if (gDecl->ident == "start") { // our entry point
+		if (gDecl->ident == "start" || gDecl->ident == "OnKeyDown" || gDecl->ident == "OnKeyUp" || gDecl->ident == "OnClick" || gDecl->ident == "MainLoop") { // our entry point
 			out += "(export \"" + gDecl->ident + "\")";
 		}
 		for (auto param : gDecl->func.params) {
@@ -64,6 +67,9 @@ void AsmBuilder::HandleGlobalDeclaration(std::shared_ptr<Declaration> gDecl) {
 					break;
 				case TYPE_INT:
 					out += "i32";
+					break;
+				case TYPE_FLOAT:
+					out += "f32";
 					break;
 			}
 			out += ")";
@@ -78,23 +84,48 @@ void AsmBuilder::HandleGlobalDeclaration(std::shared_ptr<Declaration> gDecl) {
 				case TYPE_INT:
 					out += "i32";
 					break;
+				case TYPE_FLOAT:
+					out += "f32";
+					break;
 			}
 			out += ")";
 		}
 		HandleBlockScope(gDecl->func.childNodes);
-		if (gDecl->typ == TYPE_VOID) {
-			for (int i = 0; i < curFuncVarsLeft; i++) {
-				out += "(drop)";
-			}
-			curFuncVarsLeft = 0;
-		}
 		out += ")";
 	} else {
-		
+		out += "(global $" + gDecl->ident + " (mut ";
+		switch (gDecl->typ) {
+			default:
+				std::cout << "unsupported global variable type" << std::endl;
+				exit(1);
+				break;
+			case TYPE_INT:
+				out += "i32";
+				break;
+			case TYPE_FLOAT:
+				out += "f32";
+				break;
+		}
+		out += ")(i32.const 0))";
+		globalVars[gDecl->ident] = true;
 	}
 }
 
-void AsmBuilder::HandleBlockScope(std::vector<std::shared_ptr<AstNode>> nodes) {
+std::string gen_random_str(const int len) {
+    static const char alphanum[] =
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+        "abcdefghijklmnopqrstuvwxyz";
+    std::string tmp_s;
+    tmp_s.reserve(len);
+
+    for (int i = 0; i < len; ++i) {
+        tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+    }
+    
+    return tmp_s;
+}
+
+void AsmBuilder::HandleBlockScope(std::vector<std::shared_ptr<AstNode>> nodes/*, std::vector<std::unordered_map<std::string, DeclInfo>> scopedVars*/) {
 	for (auto node : nodes) {
 		switch (node->GetNodeType()) {
 			default:
@@ -108,9 +139,27 @@ void AsmBuilder::HandleBlockScope(std::vector<std::shared_ptr<AstNode>> nodes) {
 				HandleExpression(std::static_pointer_cast<Expression>(node)->child1);
 				out += "(return)";
 				break;
-			case NODE_IF_STATEMENT:
-				
+			case NODE_IF_STATEMENT: {
+				std::shared_ptr<IfStatement> ifStat = std::static_pointer_cast<IfStatement>(node);
+				HandleExpression(ifStat->condition);
+				out += "(if (then ";
+				HandleBlockScope(ifStat->childNodes);
+				out += ")(else ";
+				HandleBlockScope(ifStat->elseChildNodes);
+				out += "))";
 				break;
+			}
+			case NODE_DECLARATION:
+				out += "(local $" + std::static_pointer_cast<Declaration>(node)->ident + " i32)";
+				break;
+			case NODE_WHILE_LOOP: {
+				std::string loopIdent = gen_random_str(10);
+				out += "(loop $" + loopIdent;
+				HandleBlockScope(std::static_pointer_cast<WhileLoop>(node)->childNodes);
+				HandleExpression(std::static_pointer_cast<WhileLoop>(node)->condition);
+				out += "(br_if $" + loopIdent + "))";
+				break;
+			}
 		}
 	}
 }
@@ -128,9 +177,7 @@ void AsmBuilder::HandleExpression(std::shared_ptr<Expression> expr) {
 				HandleExpression(arg);
 				++numArgs;
 			}
-			curFuncVarsLeft -= numArgs;
 			out += "(call $" + expr->idenName + ")";
-			std::cout << "Func call " << expr->idenName << std::endl;
 			break;
 		}
 		case EXP_PRIMARY:
@@ -141,32 +188,73 @@ void AsmBuilder::HandleExpression(std::shared_ptr<Expression> expr) {
 					break;
 				case TYPE_INT:
 					out += "(i32.const " + std::to_string(expr->iVal) + ")";
-					curFuncVarsLeft += 1;
 					break;
 			}
 			break;
 		case EXP_VARIABLE:
-			out += "(local.get $" + expr->idenName + ")";
+			if (globalVars[expr->idenName]) {
+				out += "(global.get $" + expr->idenName + ")";
+			} else {
+				out += "(local.get $" + expr->idenName + ")";
+			}
 			break;
 		case EXP_ADDITION:
+			out += "(i32.add ";
 			HandleExpression(expr->child1);
 			HandleExpression(expr->child2);
-			out += "(i32.add)";
-			curFuncVarsLeft -= 1;
+			out += ")";
 			break;
 		case EXP_SUBTRACTION:
+			HandleExpression(expr->child1);
+			HandleExpression(expr->child2);
+			out += "(i32.sub)";
 			break;
 		case EXP_MULTIPLICATION:
+			HandleExpression(expr->child1);
+			HandleExpression(expr->child2);
+			out += "(i32.mul)";
 			break;
 		case EXP_DIVISION:
+			HandleExpression(expr->child1);
+			HandleExpression(expr->child2);
+			out += "(i32.div_s)";
 			break;
 		case EXP_EXPONENTIATION:
 			break;
 		case EXP_ASSIGNMENT:
+			if (!std::dynamic_pointer_cast<Expression>(expr->child1)) {
+				std::cout << "Could not create assembly for assignment: left hand side is invalid." << std::endl;
+				exit(1);
+			}
+			if (globalVars[std::dynamic_pointer_cast<Expression>(expr->child1)->idenName]) {
+				out += "(global.set $" + std::dynamic_pointer_cast<Expression>(expr->child1)->idenName;
+			} else {
+				out += "(local.set $" + std::dynamic_pointer_cast<Expression>(expr->child1)->idenName;
+			}
+			HandleExpression(expr->child2);
+			out += ")";
 			break;
 		case EXP_EQUALITY:
+			HandleExpression(expr->child1);
+			HandleExpression(expr->child2);
+			out += "(i32.eq)";
 			break;
 		case EXP_NOT_EQUALITY:
+			break;
+		case EXP_LESS:
+			HandleExpression(expr->child1);
+			HandleExpression(expr->child2);
+			out += "(i32.lt_s)";
+			break;
+		case EXP_GREATER:
+			HandleExpression(expr->child1);
+			HandleExpression(expr->child2);
+			out += "(i32.gt_s)";
+			break;
+		case EXP_REMAINDER:
+			HandleExpression(expr->child1);
+			HandleExpression(expr->child2);
+			out += "(i32.rem_s)";
 			break;
 	}
 }

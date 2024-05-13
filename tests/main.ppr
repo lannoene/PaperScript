@@ -1,9 +1,89 @@
-//inc "print.s"
+// this code generates a small mario game
 
-int add(int a, int b) {
-	ret a + b;
-}
+int x;
+int y;
+int vVel;
+int hVel;
+int left;
+int right;
+int up;
+int down;
+int gameFrame;
 
 void start() {
-	printInt(add(1, 1));
+	x = 0;
+	y = 0;
+	vVel = 0;
+	left = 0;
+	right = 0;
+	gameFrame = 0;
+}
+
+void DrawGame() {
+	draw(2, 0, 0);
+	draw(1, x/16, y/16);
+}
+
+void MainLoop() {
+	vVel = vVel - 1;
+	
+	y = y - vVel;
+	
+	if (right) {
+		hVel = hVel + 1;
+	} else { if (left) {
+		hVel = hVel - 1;
+	} else { if (hVel > 0) {
+		hVel = hVel - 1;
+	} else { if (hVel < 0) {
+		hVel = hVel + 1;
+	} else {
+		hVel = 0;
+	}}}}
+	
+	x = x + hVel;
+	
+	if (y/16 > 100) {
+		y = 100*16;
+		vVel = 0;
+	}
+	
+	
+	clearScreen();
+	DrawGame();
+}
+
+void Jump() {
+	vVel = 2*16;
+}
+
+void OnKeyDown(int e) {
+	if (e == 39) { // right
+		right = 1;
+	}
+	if (e == 37) { // left
+		left = 1;
+	}
+	if (e == 38) { // up
+		up = 1;
+		Jump();
+	}
+	if (e == 40) { // down
+		down = 1;
+	}
+}
+
+void OnKeyUp(int e) {
+	if (e == 39) { // right
+		right = 0;
+	}
+	if (e == 37) { // left
+		left = 0;
+	}
+	if (e == 38) { // up
+		up = 0;
+	}
+	if (e == 40) { // down
+		down = 0;
+	}
 }

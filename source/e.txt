@@ -1,0 +1,26 @@
+(module
+  (type (;0;) (func (param i32 i32) (result i32)))
+  (type (;1;) (func))
+  (type (;2;) (func (result i32)))
+  (import "env" "__linear_memory" (memory (;0;) 1))
+  (import "env" "__indirect_function_table" (table (;0;) 0 funcref))
+  (func $_Z1eii (type 0) (param i32 i32) (result i32)
+    local.get 1
+    local.get 0
+    i32.mul)
+  (func $_Z1iii (type 0) (param i32 i32) (result i32)
+    local.get 1
+    local.get 0
+    i32.add)
+  (func $_Z1av (type 1))
+  (func $__original_main (type 2) (result i32)
+    i32.const 0
+    i32.const 0
+    i32.load
+    i32.const 1
+    i32.add
+    i32.store
+    i32.const 0)
+  (func $main (type 0) (param i32 i32) (result i32)
+    call $__original_main)
+  (data $idf (i32.const 0) "\00\00\00\00"))

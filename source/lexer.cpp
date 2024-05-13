@@ -107,6 +107,10 @@ enum KEYWORD_IDS Lexer::GetKeywordId(std::string keyword) {
 		return KEY_VOID;
 	} else if (keyword == "ret") {
 		return KEY_RETURN;
+	} else if (keyword == "while") {
+		return KEY_WHILE;
+	} else if (keyword == "float") {
+		return KEY_FLOAT;
 	}
 	return KEY_UNKNOWN;
 }
@@ -120,7 +124,11 @@ Token Lexer::GetNextToken() {
 	if (isalnum(curChr)) {
 		std::string keyword = GetStrUntilNonAlpha();
 		if (isdigit(curChr)) { // TODO: conv to float later using std::stof with checking for exception
-			return Token(TOK_INT_VALUE, keyword, std::stoi(keyword), CLASS_LITERAL, line);
+			if (keyword.find('.') != std::string::npos) {
+				return Token(TOK_INT_VALUE, keyword, std::stof(keyword), CLASS_LITERAL, line);
+			} else {
+				return Token(TOK_INT_VALUE, keyword, std::stoi(keyword), CLASS_LITERAL, line);
+			}
 		}
 		
 		switch (GetKeywordId(keyword)) {
@@ -148,7 +156,10 @@ Token Lexer::GetNextToken() {
 				return FormatToken(TOK_VOID, CLASS_TYPE);
 			case KEY_RETURN:
 				return FormatToken(TOK_RETURN, CLASS_TYPE);
-				break;
+			case KEY_WHILE:
+				return FormatToken(TOK_WHILE, CLASS_STATEMENT);
+			case KEY_FLOAT:
+				return FormatToken(TOK_FLOAT, CLASS_TYPE);
 		}
 	}
 	
@@ -230,6 +241,8 @@ Token Lexer::GetNextToken() {
 				return FormatToken(TOK_AND, CLASS_GENERIC);
 			}
 		}
+		case '%':
+			return FormatToken(TOK_REMAINDER, CLASS_MATH_OPERATION);
 	}
 	return Token(TOK_NONE, "---could not decode token (line " + std::to_string(line) + "!---", CLASS_GENERIC, line);
 }

@@ -55,6 +55,9 @@ enum VARIABLE_TYPES Parser::TurnTokTypeToVarType(enum token_types t) {
 		case TOK_VOID:
 			type = TYPE_VOID;
 			break;
+		case TOK_FLOAT:
+			type = TYPE_FLOAT;
+			break;
 	}
 	return type;
 }
@@ -155,13 +158,6 @@ std::shared_ptr<AstNode> Parser::ParseIfStatement() {
 	
 	std::shared_ptr<IfStatement> ifStat = std::make_shared<IfStatement>(ifExp);
 	
-	/*
-	if (tokens[place + 1] == TOK_LBRACE) {
-	} else {
-		ifStat->childNodes = std::vector<std::shared_ptr<AstNode>>{std::static_pointer_cast<AstNode>(ParseExpression())};
-		EatToken(TOK_SEMICOLON);
-	}*/
-	
 	ifStat->childNodes = ParseBlockScope();
 	
 	if (EatTokenOptional(TOK_ELSE)) {
@@ -170,6 +166,21 @@ std::shared_ptr<AstNode> Parser::ParseIfStatement() {
 	}
 	
 	return ifStat;
+}
+
+std::shared_ptr<AstNode> Parser::ParseWhileLoop() {
+	EatToken(TOK_WHILE);
+	EatToken(TOK_LPAREN);
+	
+	std::shared_ptr<Expression> condExp = ParseExpression();
+	
+	EatToken(TOK_RPAREN);
+	
+	std::shared_ptr<WhileLoop> wLoop = std::make_shared<WhileLoop>(condExp);
+	
+	wLoop->childNodes = ParseBlockScope();
+	
+	return wLoop;
 }
 
 std::vector<Token> Parser::GetTokensInsideDelimiters(enum token_types start, enum token_types ending) {
@@ -208,6 +219,9 @@ std::vector<std::shared_ptr<AstNode>> Parser::ParseBlockScope() {
 			case TOK_IF:
 				std::cout << "found if" << std::endl;
 				ret.push_back(ParseIfStatement());
+				
+				//std::cout << "stat len: " << std::static_pointer_cast<IfStatement>(ret.back())->elseChildNodes.size() << std::endl;
+				//exit(1);
 				break;
 			case TOK_IDENTIFIER: {
 				std::shared_ptr<Expression> expr = ParseExpression();
@@ -225,13 +239,16 @@ std::vector<std::shared_ptr<AstNode>> Parser::ParseBlockScope() {
 				enum VARIABLE_TYPES typ = TurnTokTypeToVarType(EatTokClass(CLASS_TYPE).GetType());
 				std::string varName = EatToken(TOK_IDENTIFIER).GetIdentifier();
 				EatToken(TOK_SEMICOLON);
-				ret.push_back(std::make_shared<Declaration>(typ, varName, false));
+				ret.insert(ret.begin(), std::make_shared<Declaration>(typ, varName, false));
 				break;
 			}
 			case TOK_RETURN:
 				EatToken(TOK_RETURN);
 				ret.push_back(std::make_shared<ReturnStatement>(ParseExpression()));
 				EatToken(TOK_SEMICOLON);
+				break;
+			case TOK_WHILE:
+				ret.push_back(ParseWhileLoop());
 				break;
 		}
 		std::cout << "curTok " << tok.GetIdentifier() << std::endl;
@@ -286,9 +303,7 @@ std::shared_ptr<Expression> Parser::ParsePrimaryExpression() {
 }
 
 std::shared_ptr<Expression> Parser::ParseMultiplyExpression() {
-	std::cout << "in mult" << std::endl;
 	std::shared_ptr<Expression> lnode = ParsePrimaryExpression();
-	std::cout << "in mult again" << std::endl;
 	if (!lnode)
 		return nullptr;
 	
@@ -300,15 +315,16 @@ std::shared_ptr<Expression> Parser::ParseMultiplyExpression() {
 		case TOK_FSLASH:
 			EatToken(TOK_FSLASH);
 			return std::make_shared<Expression>(EXP_DIVISION, lnode, ParseMultiplyExpression());
+		case TOK_REMAINDER:
+			EatToken(TOK_REMAINDER);
+			return std::make_shared<Expression>(EXP_REMAINDER, lnode, ParseMultiplyExpression());
 		default:
 			return lnode;
 	}
 }
 
 std::shared_ptr<Expression> Parser::ParseAdditiveExpression() {
-	std::cout << "in add" << std::endl;
 	std::shared_ptr<Expression> lnode = ParseMultiplyExpression();
-	std::cout << "in add again" << std::endl;
 	
 	if (!lnode)
 		return nullptr;
@@ -326,10 +342,27 @@ std::shared_ptr<Expression> Parser::ParseAdditiveExpression() {
 	}
 }
 
-std::shared_ptr<Expression> Parser::ParseEqualityExpression() {
-	std::cout << "in equality" << std::endl;
+std::shared_ptr<Expression> Parser::ParseInequalityExpression() {
 	std::shared_ptr<Expression> lnode = ParseAdditiveExpression();
-	std::cout << "in equality again" << std::endl;
+	
+	if (!lnode)
+		return nullptr;
+	
+	Token tok;
+	switch ((tok = tokens[place]).GetType()) {
+		case TOK_GREATER:
+			EatToken(TOK_GREATER);
+			return std::make_shared<Expression>(EXP_GREATER, lnode, ParseAdditiveExpression());
+		case TOK_LESS:
+			EatToken(TOK_LESS);
+			return std::make_shared<Expression>(EXP_LESS, lnode, ParseAdditiveExpression());
+		default:
+			return lnode;
+	}
+}
+
+std::shared_ptr<Expression> Parser::ParseEqualityExpression() {
+	std::shared_ptr<Expression> lnode = ParseInequalityExpression();
 	
 	if (!lnode)
 		return nullptr;
@@ -338,19 +371,17 @@ std::shared_ptr<Expression> Parser::ParseEqualityExpression() {
 	switch ((tok = tokens[place]).GetType()) {
 		case TOK_EQUALITY:
 			EatToken(TOK_EQUALITY);
-			return std::make_shared<Expression>(EXP_EQUALITY, lnode, ParseAdditiveExpression());
+			return std::make_shared<Expression>(EXP_EQUALITY, lnode, ParseInequalityExpression());
 		case TOK_NOT_EQUALITY:
 			EatToken(TOK_NOT_EQUALITY);
-			return std::make_shared<Expression>(EXP_NOT_EQUALITY, lnode, ParseAdditiveExpression());
+			return std::make_shared<Expression>(EXP_NOT_EQUALITY, lnode, ParseInequalityExpression());
 		default:
 			return lnode;
 	}
 }
 
 std::shared_ptr<Expression> Parser::ParseAssignmentExpression() {
-	std::cout << "in assign" << std::endl;
 	std::shared_ptr<Expression> lnode = ParseEqualityExpression();
-	std::cout << "in assign again" << std::endl;
 	
 	if (!lnode)
 		return nullptr;
@@ -380,7 +411,8 @@ std::vector<std::shared_ptr<Expression>> Parser::ParseFunctionInputs() {
 		if (!EatTokenOptional(TOK_COMMA))
 			break;
 	}
-	EatToken(TOK_RPAREN);
+	if (tokens[place] == TOK_RPAREN)
+		EatToken(TOK_RPAREN);
 	return ret;
 }
 
@@ -409,6 +441,9 @@ void Parser::AstPrintAst(std::shared_ptr<AstNode> parNode, int vPlace) {
 			VPlacePrint(vPlace);
 			printf("Return:\n");
 			AstPrintExpression(std::static_pointer_cast<ReturnStatement>(parNode)->expr, vPlace + 1);
+			break;
+		case NODE_WHILE_LOOP:
+			
 			break;
 	}
 }
@@ -491,6 +526,18 @@ void Parser::AstPrintExpression(std::shared_ptr<Expression> parNode, int vPlace)
 			VPlacePrint(vPlace);
 			std::cout << "Variable: " << parNode->idenName << std::endl;
 			break;
+		case EXP_LESS:
+			VPlacePrint(vPlace);
+			printf("Less than:\n");
+			AstPrintExpression(parNode->child1, vPlace + 1);
+			AstPrintExpression(parNode->child2, vPlace + 1);
+			break;
+		case EXP_GREATER:
+			VPlacePrint(vPlace);
+			printf("Greater than:\n");
+			AstPrintExpression(parNode->child1, vPlace + 1);
+			AstPrintExpression(parNode->child2, vPlace + 1);
+			break;
 	}
 }
 
@@ -518,15 +565,17 @@ void Parser::AstPrintDeclaration(std::shared_ptr<Declaration> parNode, int vPlac
 void Parser::AstPrintIfStatement(std::shared_ptr<IfStatement> parNode, int vPlace) {
 	VPlacePrint(vPlace);
 	printf("If cond:\n");
-	AstPrintExpression(std::static_pointer_cast<Expression>(parNode->condition), vPlace + 1);
+	AstPrintExpression(parNode->condition, vPlace + 1);
 	VPlacePrint(vPlace);
 	printf("Then:\n");
 	for (auto child : parNode->childNodes) {
 		AstPrintAst(child, vPlace);
 	}
+	
 	if (parNode->hasElse) {
 		VPlacePrint(vPlace);
 		printf("Else:\n");
+		std::cout << "l length: " << parNode->elseChildNodes.size() << std::endl;
 		for (auto child : parNode->elseChildNodes) {
 			AstPrintAst(child, vPlace);
 		}
