@@ -256,5 +256,16 @@ void AsmBuilder::HandleExpression(std::shared_ptr<Expression> expr) {
 			HandleExpression(expr->child2);
 			out += "(i32.rem_s)";
 			break;
+		case EXP_AND:
+			HandleExpression(expr->child1);
+			out += "(i32.const 0)";
+			out += "(i32.ne)";
+			HandleExpression(expr->child2);
+			out += "(i32.const 0)";
+			out += "(i32.ne)";
+			out += "(i32.add)";
+			out += "(i32.const 2)";
+			out += "(i32.eq)";
+			break;
 	}
 }

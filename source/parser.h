@@ -31,6 +31,7 @@ enum expression_types {
 	EXP_LESS,
 	EXP_GREATER,
 	EXP_REMAINDER,
+	EXP_AND,
 };
 
 enum VARIABLE_TYPES {
@@ -181,6 +182,7 @@ private:
 	std::shared_ptr<Expression> ParseMultiplyExpression();
 	std::shared_ptr<Expression> ParseEqualityExpression();
 	std::shared_ptr<Expression> ParseInequalityExpression();
+	std::shared_ptr<Expression> ParseAndExpression();
 	std::shared_ptr<AstNode> ParseWhileLoop();
 	Token GetNextToken();
 	void AstPrintAst(std::shared_ptr<AstNode> parNode, int vPlace);

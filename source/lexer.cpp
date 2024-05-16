@@ -125,7 +125,7 @@ Token Lexer::GetNextToken() {
 		std::string keyword = GetStrUntilNonAlpha();
 		if (isdigit(curChr)) { // TODO: conv to float later using std::stof with checking for exception
 			if (keyword.find('.') != std::string::npos) {
-				return Token(TOK_INT_VALUE, keyword, std::stof(keyword), CLASS_LITERAL, line);
+				return Token(TOK_FLOAT_VALUE, keyword, std::stof(keyword), CLASS_LITERAL, line);
 			} else {
 				return Token(TOK_INT_VALUE, keyword, std::stoi(keyword), CLASS_LITERAL, line);
 			}
@@ -235,9 +235,10 @@ Token Lexer::GetNextToken() {
 		case '/':
 			return FormatToken(TOK_FSLASH, CLASS_GENERIC);
 		case '&': {
-			if (contents[place + 1] == '&') {
+			if (contents[place + 1] != '&') {
 				return FormatToken(TOK_BIT_AND, CLASS_GENERIC);
 			} else {
+				++place;
 				return FormatToken(TOK_AND, CLASS_GENERIC);
 			}
 		}

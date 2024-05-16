@@ -17,6 +17,11 @@ void a() {
 }
 
 int main() {
+	int asdf = 3, dse = 6;
+	if (asdf == dse && asdf > 0 && dse < 10) {
+		e(1, 4);
+	}
+	
 	i(i(2, 5), 3);
 
 	e(e(e(3, 3), 3), 3);
@@ -24,8 +29,5 @@ int main() {
 
 	e(idf, idf++);
 
-	int e[10];
-
-	e(e[0], e[1]);
 	return 0;
 }

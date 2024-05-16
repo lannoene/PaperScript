@@ -158,11 +158,33 @@ std::shared_ptr<AstNode> Parser::ParseIfStatement() {
 	
 	std::shared_ptr<IfStatement> ifStat = std::make_shared<IfStatement>(ifExp);
 	
-	ifStat->childNodes = ParseBlockScope();
+	if (EatTokenOptional(TOK_LBRACE)) {
+		place--;
+		ifStat->childNodes = ParseBlockScope();
+	} else {
+		if (EatTokenOptional(TOK_IF)) {
+			place--;
+			ifStat->childNodes = std::vector<std::shared_ptr<AstNode>>{ParseIfStatement()};
+		} else {
+			ifStat->childNodes = std::vector<std::shared_ptr<AstNode>>{ParseExpression()};
+			EatToken(TOK_SEMICOLON);
+		}
+	}
 	
 	if (EatTokenOptional(TOK_ELSE)) {
-		ifStat->elseChildNodes = ParseBlockScope();
 		ifStat->hasElse = true;
+		if (EatTokenOptional(TOK_LBRACE)) {
+			place--;
+			ifStat->elseChildNodes = ParseBlockScope();
+		} else {
+			if (EatTokenOptional(TOK_IF)) {
+				place--;
+				ifStat->elseChildNodes = std::vector<std::shared_ptr<AstNode>>{ParseIfStatement()};
+			} else {
+				ifStat->elseChildNodes = std::vector<std::shared_ptr<AstNode>>{ParseExpression()};
+				EatToken(TOK_SEMICOLON);
+			}
+		}
 	}
 	
 	return ifStat;
@@ -380,8 +402,25 @@ std::shared_ptr<Expression> Parser::ParseEqualityExpression() {
 	}
 }
 
-std::shared_ptr<Expression> Parser::ParseAssignmentExpression() {
+std::shared_ptr<Expression> Parser::ParseAndExpression() {
 	std::shared_ptr<Expression> lnode = ParseEqualityExpression();
+	
+	if (!lnode)
+		return nullptr;
+	
+	Token tok;
+	switch ((tok = tokens[place]).GetType()) {
+		case TOK_AND:
+			EatToken(TOK_AND);
+			return std::make_shared<Expression>(EXP_AND, lnode, ParseAndExpression());
+		default:
+			return lnode;
+	}
+	
+}
+
+std::shared_ptr<Expression> Parser::ParseAssignmentExpression() {
+	std::shared_ptr<Expression> lnode = ParseAndExpression();
 	
 	if (!lnode)
 		return nullptr;
