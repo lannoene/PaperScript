@@ -21,7 +21,8 @@ void Lexer::Warning(std::string warning) {
 Lexer::Lexer(std::string sourceDir) {
 	std::fstream file(sourceDir);
 	if (!file.is_open()) {
-		std::cout << "could not ope file: " << sourceDir << std::endl;
+		std::cout << "could not open file: " << sourceDir << std::endl;
+		exit(1);
 		return;
 	} else {
 		std::cout << "opened file" << std::endl;
@@ -76,7 +77,7 @@ std::string Lexer::GetNextString() {
 
 std::string Lexer::GetStrUntilNonAlpha() {
 	std::string str;
-	while (isalnum(contents[place])) {
+	while (isalnum(contents[place]) || contents[place] == '_') {
 		str += contents[place];
 		AdvancePlace();
 	}
@@ -121,7 +122,7 @@ Token Lexer::GetNextToken() {
 	char curChr = contents[place];
 	
 	// if is alphanumeric, then it may be a keyword
-	if (isalnum(curChr)) {
+	if (isalnum(curChr) || curChr == '_') {
 		std::string keyword = GetStrUntilNonAlpha();
 		if (isdigit(curChr)) { // TODO: conv to float later using std::stof with checking for exception
 			if (keyword.find('.') != std::string::npos) {
@@ -129,6 +130,8 @@ Token Lexer::GetNextToken() {
 			} else {
 				return Token(TOK_INT_VALUE, keyword, std::stoi(keyword), CLASS_LITERAL, line);
 			}
+		} else if (curChr == '-' && isdigit(contents[place + 1])) {
+			return Token(TOK_INT_VALUE, keyword, std::stoi(keyword), CLASS_LITERAL, line);
 		}
 		
 		switch (GetKeywordId(keyword)) {
@@ -223,7 +226,12 @@ Token Lexer::GetNextToken() {
 		}
 		case '+':
 			// TODO: check for ++
-			return Token(TOK_PLUS, "+", CLASS_MATH_OPERATION, line);
+			if (contents[place + 1] != '=') {
+				return Token(TOK_PLUS, "+", CLASS_MATH_OPERATION, line);
+			} else {
+				++place;
+				return FormatToken(TOK_PLUS_EQ, CLASS_GENERIC);
+			}
 		case '-':
 			return FormatToken(TOK_MINUS, CLASS_MATH_OPERATION);
 		case '[':
@@ -244,6 +252,13 @@ Token Lexer::GetNextToken() {
 		}
 		case '%':
 			return FormatToken(TOK_REMAINDER, CLASS_MATH_OPERATION);
+		case '|':
+			if (contents[place + 1] == '|') {
+				++place;
+				return FormatToken(TOK_OR, CLASS_GENERIC);
+			} else {
+				return FormatToken(TOK_BIT_OR, CLASS_GENERIC);
+			}
 	}
 	return Token(TOK_NONE, "---could not decode token (line " + std::to_string(line) + "!---", CLASS_GENERIC, line);
 }

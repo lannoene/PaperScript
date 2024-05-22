@@ -48,7 +48,10 @@ enum token_types {
 	TOK_BREAK,
 	TOK_REMAINDER,
 	TOK_FLOAT,
-	TOK_FLOAT_VALUE
+	TOK_FLOAT_VALUE,
+	TOK_OR,
+	TOK_BIT_OR,
+	TOK_PLUS_EQ,
 };
 
 inline const char *tokIden[] = {
@@ -94,7 +97,10 @@ inline const char *tokIden[] = {
 	"break",
 	"%",
 	"float",
-	"[[float value]]"
+	"[[float value]]",
+	"||",
+	"|",
+	"+=",
 };
 
 enum KEYWORD_IDS {

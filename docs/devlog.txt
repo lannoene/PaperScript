@@ -11,3 +11,5 @@ Either way, my inc system will work like the following:
 5) parse file
 6) include all public functions and groups
 --end inc thoughts--
+man, it's been a while since i've typed in the dev log. Long time no see as they would say. Either way, here's what I've got to share. Of course after all this time, I've realized that making a programming language is hard, but the mere existance of arrays is like a sharp knife in my chest. Not that I hate them, no, in fact I love them! The thing that trips me up about them is that I have no idea how to add them to my language. There is also no documentation online about this and when I tried to see what C does, it just optimizes it out and doesn't show me anything. When I turn optimization off, it still doesn't show me the array indexing and declaration. One thing I did glean was the (data) tag, but I have no idea how that works. I should probably look into it ngl... XD aight I guess imma do that.
+Ok i tried to look into it but there's nothing to see.

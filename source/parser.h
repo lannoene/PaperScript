@@ -32,6 +32,8 @@ enum expression_types {
 	EXP_GREATER,
 	EXP_REMAINDER,
 	EXP_AND,
+	EXP_OR,
+	EXP_NEGATIVE,
 };
 
 enum VARIABLE_TYPES {
@@ -61,36 +63,6 @@ public:
 	std::vector<std::shared_ptr<AstNode>> childNodes;
 };
 
-class Declaration : public AstNode {
-public:
-	enum VARIABLE_TYPES typ;
-	std::string ident;
-	bool isFunc, isPublic;
-	// var
-	Declaration(enum VARIABLE_TYPES t, std::string i, bool p) : AstNode(NODE_DECLARATION) {
-		isFunc = false;
-		typ = t;
-		ident = i;
-		isPublic = p;
-	}
-	struct {
-		//std::vector<std::shared_ptr<Expression> initialExp;
-	} var;
-	// func
-	Declaration(enum VARIABLE_TYPES t, std::string i, bool p, std::vector<std::pair<enum VARIABLE_TYPES, std::string>> e, std::vector<std::shared_ptr<AstNode>> n) : Declaration(t, i, p) {
-		func.params = e;
-		func.childNodes = n;
-		isFunc = true;
-	}
-	struct {
-		std::vector<std::pair<enum VARIABLE_TYPES, std::string>> params;
-		std::vector<std::shared_ptr<AstNode>> childNodes;
-	} func;
-	
-private:
-	
-};
-
 class Expression : public AstNode {
 public:
 	Expression(enum expression_types t) : AstNode(NODE_EXPRESSION) {
@@ -117,6 +89,37 @@ public:
 	enum expression_types ExpType() {return expType;}
 private:
 	enum expression_types expType;
+};
+
+class Declaration : public AstNode {
+public:
+	enum VARIABLE_TYPES typ;
+	std::string ident;
+	bool isFunc, isPublic;
+	// var
+	Declaration(enum VARIABLE_TYPES t, std::string i, bool p) : AstNode(NODE_DECLARATION) {
+		isFunc = false;
+		typ = t;
+		ident = i;
+		isPublic = p;
+	}
+	struct {
+		//std::vector<std::shared_ptr<Expression> initialExp;
+		std::shared_ptr<Expression> initialValExpr = nullptr;
+	} var;
+	// func
+	Declaration(enum VARIABLE_TYPES t, std::string i, bool p, std::vector<std::pair<enum VARIABLE_TYPES, std::string>> e, std::vector<std::shared_ptr<AstNode>> n) : Declaration(t, i, p) {
+		func.params = e;
+		func.childNodes = n;
+		isFunc = true;
+	}
+	struct {
+		std::vector<std::pair<enum VARIABLE_TYPES, std::string>> params;
+		std::vector<std::shared_ptr<AstNode>> childNodes;
+	} func;
+	
+private:
+	
 };
 
 class FunctionCall : public Expression {
@@ -183,6 +186,8 @@ private:
 	std::shared_ptr<Expression> ParseEqualityExpression();
 	std::shared_ptr<Expression> ParseInequalityExpression();
 	std::shared_ptr<Expression> ParseAndExpression();
+	std::shared_ptr<Expression> ParseUrnaryExpression();
+	std::shared_ptr<Expression> ParseOrExpression();
 	std::shared_ptr<AstNode> ParseWhileLoop();
 	Token GetNextToken();
 	void AstPrintAst(std::shared_ptr<AstNode> parNode, int vPlace);

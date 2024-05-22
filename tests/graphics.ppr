@@ -1,0 +1,56 @@
+pub int C_BLK = 0;
+pub int C_BLU = 1;
+pub int C_RED = 2;
+pub int C_GRN = 3;
+pub int C_YLW = 4;
+
+pub int SCREEN_WIDTH = 1280;
+pub int SCREEN_HEIGHT = 720;
+
+int __drawR;
+int __drawG;
+int __drawB;
+
+
+pub void SetDrawColor(int color) {
+	if (color == C_BLK) {
+		__drawR = 0;
+		__drawG = 0;
+		__drawB = 0;
+	} else if (color == C_BLU) {
+		__drawR = 0;
+		__drawG = 0;
+		__drawB = 255;
+	} else if (color == C_RED) {
+		__drawR = 255;
+		__drawG = 0;
+		__drawB = 0;
+	} else if (color == C_GRN) {
+		__drawR = 0;
+		__drawG = 255;
+		__drawB = 0;
+	} else if (color == C_YLW) {
+		__drawR = 255;
+		__drawG = 238;
+		__drawB = 0;
+	} else {
+		ret;
+	}
+	__setDrawColor(__drawR, __drawG, __drawB);
+}
+
+pub void DrawRectangle(int rx, int ry, int rw, int rh) {
+	__drawRectangle(rx, ry, rw, rh);
+}
+
+pub void ScreenWidth() {
+	ret SCREEN_WIDTH;
+}
+
+pub void ScreenHeight() {
+	ret SCREEN_HEIGHT;
+}
+
+pub void DrawLine(int x1, int y1, int x2, int y2) {
+	__drawLine(x1, y1, x2, y2);
+}

@@ -1,0 +1,104 @@
+int factorial(int a) {
+	if (a == 1) {
+		ret 1;
+	}
+	int retVal = a;
+	int i = a - 1;
+	while (i > 0) {
+		retVal = retVal * i;
+		
+		i += -1;
+	}
+	ret retVal;
+}
+
+int abs(int a) {
+	ret a * ((a > 0) - (a < 0));
+}
+
+int pow(int base, int exp) {
+	int i = 1;
+	int ogBase = base;
+	while (i < exp) {
+		base = base * ogBase;
+		i += 1;
+	}
+	ret base;
+}
+
+int FP2I(int a) {
+	ret a/16;
+}
+
+int I2FP(int a) {
+	ret a*16;
+}
+
+int GetHighOutOfFour(int a, int b, int c, int d) {
+	if (a > b && a > c && a > d) {
+		ret 0;
+	}
+	if (b > a && b > c && b > d) {
+		ret 1;
+	}
+	if (c > a && c > b && c > d) {
+		ret 2;
+	}
+	ret 3;
+}
+
+int randNext = 69420;
+prv int RAND_MAX = 65535;
+
+void srand(int seed) {
+	randNext = seed;
+}
+
+int rand() { // stolen from https://opensource.apple.com/source/Libc/Libc-166/stdlib.subproj/rand.c.auto.html
+	randNext = randNext * 1103515245 + 12345;
+	ret randNext % RAND_MAX + 1;
+}
+
+int sqrt(int a) {
+	if (a < 0) {
+		ret -1;
+	}
+	int s = 1;
+	int l = a;
+	int mid = 0;
+	while ((s < l + 1) && (mid * mid) != a) {
+		mid = (s + l) / 2;
+		if ((mid * mid) < a) {
+			s = mid + 1;
+		} else {
+			l = mid - 1;
+		}
+		mid = (s + l) / 2;
+	}
+	
+	ret mid;
+}
+
+int sin(int a) {
+	int i = 0;
+	
+	int res = 0;
+	
+	int numMul = 0;
+	int oddNumFromI;
+	
+	while (i < 6) {
+		if (!(i % 2))
+			numMul = 1;
+		else {
+			numMul = -1;
+		}
+		
+		oddNumFromI = i*2 + 1;
+		printInt(factorial(oddNumFromI));
+		res += numMul*(pow(a, oddNumFromI)/factorial(oddNumFromI));
+		i += 1;
+	}
+	
+	ret res;
+}

@@ -30,6 +30,7 @@ void AsmBuilder::GenerateWat(std::shared_ptr<TranslationUnit> file) {
 	out += "(module";
 	AddJsApi();
 	
+	out += "(memory (export \"memory\") 1)";
 	for (auto global : file->childNodes) {
 		switch (global->GetNodeType()) {
 			default:
@@ -47,9 +48,13 @@ void AsmBuilder::GenerateWat(std::shared_ptr<TranslationUnit> file) {
 
 void AsmBuilder::AddJsApi() {
 	out += "(import \"imports\" \"log\" (func $printInt (param i32)))"; // print a single integer
+	out += "(import \"imports\" \"getTime\" (func $time(result i32)))"; // print a single integer
 	out += "(import \"graphics\" \"draw\" (func $draw (param i32)(param i32)(param i32)))"; // draw sun
 	out += "(import \"graphics\" \"reqNextFrame\" (func $finishDrawing))"; // req next frame
 	out += "(import \"graphics\" \"clearScreen\" (func $clearScreen))"; // clear frame
+	out += "(import \"graphics\" \"drawRectangle\" (func $__drawRectangle (param i32)(param i32)(param i32)(param i32)))"; // clear frame
+	out += "(import \"graphics\" \"setDrawColor\" (func $__setDrawColor (param i32)(param i32)(param i32)))"; // clear frame
+	out += "(import \"graphics\" \"drawLine\" (func $__drawLine (param i32)(param i32)(param i32)(param i32)))"; // clear frame
 }
 
 void AsmBuilder::HandleGlobalDeclaration(std::shared_ptr<Declaration> gDecl) {
@@ -106,7 +111,13 @@ void AsmBuilder::HandleGlobalDeclaration(std::shared_ptr<Declaration> gDecl) {
 				out += "f32";
 				break;
 		}
-		out += ")(i32.const 0))";
+		out += ")";
+		if (gDecl->var.initialValExpr) {
+			HandleExpression(gDecl->var.initialValExpr);
+		} else {
+			out += "(i32.const 0)";
+		}
+		out += ")";
 		globalVars[gDecl->ident] = true;
 	}
 }
@@ -136,7 +147,8 @@ void AsmBuilder::HandleBlockScope(std::vector<std::shared_ptr<AstNode>> nodes/*,
 				HandleExpression(std::static_pointer_cast<Expression>(node));
 				break;
 			case NODE_RETURN:
-				HandleExpression(std::static_pointer_cast<Expression>(node)->child1);
+				if (std::static_pointer_cast<ReturnStatement>(node)->expr != nullptr)
+					HandleExpression(std::static_pointer_cast<Expression>(node)->child1);
 				out += "(return)";
 				break;
 			case NODE_IF_STATEMENT: {
@@ -154,10 +166,13 @@ void AsmBuilder::HandleBlockScope(std::vector<std::shared_ptr<AstNode>> nodes/*,
 				break;
 			case NODE_WHILE_LOOP: {
 				std::string loopIdent = gen_random_str(10);
+				HandleExpression(std::static_pointer_cast<WhileLoop>(node)->condition);
+				out += "(if (then ";
 				out += "(loop $" + loopIdent;
 				HandleBlockScope(std::static_pointer_cast<WhileLoop>(node)->childNodes);
 				HandleExpression(std::static_pointer_cast<WhileLoop>(node)->condition);
 				out += "(br_if $" + loopIdent + "))";
+				out += "))";
 				break;
 			}
 		}
@@ -240,6 +255,9 @@ void AsmBuilder::HandleExpression(std::shared_ptr<Expression> expr) {
 			out += "(i32.eq)";
 			break;
 		case EXP_NOT_EQUALITY:
+			HandleExpression(expr->child1);
+			HandleExpression(expr->child2);
+			out += "(i32.ne)";
 			break;
 		case EXP_LESS:
 			HandleExpression(expr->child1);
@@ -267,5 +285,20 @@ void AsmBuilder::HandleExpression(std::shared_ptr<Expression> expr) {
 			out += "(i32.const 2)";
 			out += "(i32.eq)";
 			break;
+		case EXP_OR:
+			HandleExpression(expr->child1);
+			out += "(i32.const 0)";
+			out += "(i32.ne)";
+			HandleExpression(expr->child2);
+			out += "(i32.const 0)";
+			out += "(i32.ne)";
+			out += "(i32.add)";
+			out += "(i32.const 0)";
+			out += "(i32.ne)";
+			break;
+		case EXP_NEGATIVE:
+			HandleExpression(expr->child1);
+			out += "(i32.const -1)";
+			out += "(i32.mul)";
 	}
 }

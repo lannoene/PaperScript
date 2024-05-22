@@ -1,0 +1,51 @@
+inc "../tests/math.ppr";
+inc "../tests/graphics.ppr";
+
+int frame;
+int prevValue;
+
+void DrawFactorialGraph(int x) {
+	int newValue = SCREEN_HEIGHT - factorial(x);
+	DrawLine(pow(2, 8) + (x - 1), prevValue, x + pow(2, 8), newValue);
+	prevValue = newValue;
+}
+
+void DrawGraphLine(int x, int newValue) {
+	DrawLine(pow(2, 8) + (x - 1), (SCREEN_HEIGHT - prevValue) - (720/2), x + pow(2, 8), (SCREEN_HEIGHT - newValue) - (720/2));
+}
+
+void DrawQuadraticGraph(int x, int exp) {
+	int newValue = pow(x, exp);
+	DrawGraphLine(x, newValue);
+	prevValue = newValue;
+}
+
+void DrawSqrtGraph(int x) {
+	int newValue = sqrt(frame);
+	while (newValue == -1) {
+		frame += 1;
+		newValue = sqrt(frame);
+	}
+	DrawGraphLine(x, newValue);
+	prevValue = newValue;
+}
+
+void DrawSinGraph(int x) {
+	int newValue = sin(x);
+	printInt(newValue);
+	DrawGraphLine(x, newValue);
+	prevValue = newValue;
+}
+
+void start() {
+	SetDrawColor(C_RED);
+	frame = -pow(2, 8);
+	printInt(abs(-3837));
+	printInt(sin(3));
+}
+
+void MainLoop() {
+	//DrawSinGraph(frame);
+	
+	frame += 1;
+}

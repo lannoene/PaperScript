@@ -34,6 +34,19 @@ std::shared_ptr<TranslationUnit> Parser::ParseFileScope() {
 			case TOK_STRING:
 				file->AddChildNode(ParseGlobalIdentifier());
 				break;
+			case TOK_INCLUDE: {
+				EatToken(TOK_INCLUDE);
+				std::string incPath = EatToken(TOK_STRING_VALUE).GetIdentifier();
+				Lexer lex(incPath);
+				std::vector<Token> lexTokens = lex.ParseFile();
+				Parser parser;
+				std::shared_ptr<TranslationUnit> baseNode = parser.ParseTokens(lexTokens);
+				for (auto node : baseNode->childNodes) {
+					file->AddChildNode(node);
+				}
+				EatToken(TOK_SEMICOLON);
+				break;
+			}
 		}
 	}
 	return file;
@@ -115,7 +128,7 @@ std::shared_ptr<AstNode> Parser::ParseGlobalIdentifier() {
 	
 	switch (tokens[place].GetType()) { // var decl with initalization is not supported yet
 		default:
-			std::cout << "PARSE ERROR: expected parthesis or semicolon after declaration" << std::endl;
+			std::cout << "PARSE ERROR: expected parthesis, semicolon, or equals after declaration" << std::endl;
 			break;
 		case TOK_LPAREN: // function
 			ret = ParseFunctionDeclaration(typ, identifyName.GetIdentifier(), pub);
@@ -123,6 +136,12 @@ std::shared_ptr<AstNode> Parser::ParseGlobalIdentifier() {
 		case TOK_SEMICOLON: // variable declaration without initialization
 			EatToken(TOK_SEMICOLON);
 			ret = std::make_shared<Declaration>(typ, identifyName.GetIdentifier(), pub);
+			break;
+		case TOK_EQUALS:
+			EatToken(TOK_EQUALS);
+			ret = std::make_shared<Declaration>(typ, identifyName.GetIdentifier(), pub);
+			std::static_pointer_cast<Declaration>(ret)->var.initialValExpr = ParseExpression();
+			EatToken(TOK_SEMICOLON);
 			break;
 	}
 	
@@ -260,8 +279,16 @@ std::vector<std::shared_ptr<AstNode>> Parser::ParseBlockScope() {
 			case TOK_STRING: {
 				enum VARIABLE_TYPES typ = TurnTokTypeToVarType(EatTokClass(CLASS_TYPE).GetType());
 				std::string varName = EatToken(TOK_IDENTIFIER).GetIdentifier();
-				EatToken(TOK_SEMICOLON);
 				ret.insert(ret.begin(), std::make_shared<Declaration>(typ, varName, false));
+				if (EatTokenOptional(TOK_EQUALS)) {
+					//std::static_pointer_cast<Declaration>(ret.front())->var.initialValExpr = ParseExpression();
+					std::shared_ptr<Expression> var = std::make_shared<Expression>(EXP_VARIABLE);
+					var->idenName = varName;
+					ret.push_back(std::make_shared<Expression>(EXP_ASSIGNMENT, var, ParseExpression()));
+				}
+				EatToken(TOK_SEMICOLON);
+				
+				
 				break;
 			}
 			case TOK_RETURN:
@@ -305,6 +332,9 @@ std::shared_ptr<Expression> Parser::ParsePrimaryExpression() {
 				std::shared_ptr<FunctionCall> fCall = std::make_shared<FunctionCall>(params);
 				fCall->idenName = ident;
 				return fCall;
+			} else if (EatTokenOptional(TOK_LBRACKET)) { // array index
+				//std::shared_ptr<Expression> idxExpr = ParseExpression();
+				
 			} else { // var call
 				std::shared_ptr<Expression> var = std::make_shared<Expression>(EXP_VARIABLE);
 				var->idenName = ident;
@@ -324,8 +354,25 @@ std::shared_ptr<Expression> Parser::ParsePrimaryExpression() {
 	}
 }
 
+std::shared_ptr<Expression> Parser::ParseUrnaryExpression() {
+	switch (tokens[place].GetType()) {
+		default:
+			return ParsePrimaryExpression();
+		case TOK_MINUS:
+			EatToken(TOK_MINUS);
+			return std::make_shared<Expression>(EXP_NEGATIVE, ParsePrimaryExpression());
+		case TOK_NOT: {
+			EatToken(TOK_NOT);
+			std::shared_ptr<Expression> e = std::make_shared<Expression>(EXP_PRIMARY);
+			e->iVal = 0;
+			e->literalType = TYPE_INT;
+			return std::make_shared<Expression>(EXP_EQUALITY, ParsePrimaryExpression(), e);
+		}
+	}
+}
+
 std::shared_ptr<Expression> Parser::ParseMultiplyExpression() {
-	std::shared_ptr<Expression> lnode = ParsePrimaryExpression();
+	std::shared_ptr<Expression> lnode = ParseUrnaryExpression();
 	if (!lnode)
 		return nullptr;
 	
@@ -416,11 +463,26 @@ std::shared_ptr<Expression> Parser::ParseAndExpression() {
 		default:
 			return lnode;
 	}
+}
+
+std::shared_ptr<Expression> Parser::ParseOrExpression() {
+	std::shared_ptr<Expression> lnode = ParseAndExpression();
 	
+	if (!lnode)
+		return nullptr;
+	
+	Token tok;
+	switch ((tok = tokens[place]).GetType()) {
+		case TOK_OR:
+			EatToken(TOK_OR);
+			return std::make_shared<Expression>(EXP_OR, lnode, ParseOrExpression());
+		default:
+			return lnode;
+	}
 }
 
 std::shared_ptr<Expression> Parser::ParseAssignmentExpression() {
-	std::shared_ptr<Expression> lnode = ParseAndExpression();
+	std::shared_ptr<Expression> lnode = ParseOrExpression();
 	
 	if (!lnode)
 		return nullptr;
@@ -430,6 +492,9 @@ std::shared_ptr<Expression> Parser::ParseAssignmentExpression() {
 		case TOK_EQUALS:
 			EatToken(TOK_EQUALS);
 			return std::make_shared<Expression>(EXP_ASSIGNMENT, lnode, ParseAssignmentExpression());
+		case TOK_PLUS_EQ:
+			EatToken(TOK_PLUS_EQ);
+			return std::make_shared<Expression>(EXP_ASSIGNMENT, lnode, std::make_shared<Expression>(EXP_ADDITION, lnode, ParseOrExpression()));
 		default:
 			return lnode;
 	}
@@ -479,7 +544,8 @@ void Parser::AstPrintAst(std::shared_ptr<AstNode> parNode, int vPlace) {
 		case NODE_RETURN:
 			VPlacePrint(vPlace);
 			printf("Return:\n");
-			AstPrintExpression(std::static_pointer_cast<ReturnStatement>(parNode)->expr, vPlace + 1);
+			if (std::static_pointer_cast<ReturnStatement>(parNode)->expr != nullptr)
+				AstPrintExpression(std::static_pointer_cast<ReturnStatement>(parNode)->expr, vPlace + 1);
 			break;
 		case NODE_WHILE_LOOP:
 			
@@ -576,6 +642,10 @@ void Parser::AstPrintExpression(std::shared_ptr<Expression> parNode, int vPlace)
 			printf("Greater than:\n");
 			AstPrintExpression(parNode->child1, vPlace + 1);
 			AstPrintExpression(parNode->child2, vPlace + 1);
+			break;
+		case EXP_NEGATIVE:
+			std::cout << "neg expression" << std::endl;
+			AstPrintExpression(parNode->child1, vPlace + 1);
 			break;
 	}
 }

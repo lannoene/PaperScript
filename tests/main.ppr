@@ -1,5 +1,8 @@
 // this code generates a small mario game
 
+inc "../tests/math.ppr";
+inc "../tests/graphics.ppr";
+
 int x;
 int y;
 int vVel;
@@ -10,35 +13,26 @@ int up;
 int down;
 int gameFrame;
 int lastPressedDir;
+int grounded;
+int tryingToJump;
+//str myNewStr;
 
 void start() {
+	InitGraphics();
+	SetDrawColor(C_YLW);
 	x = 0;
 	y = 0;
 	vVel = 0;
 	left = 0;
 	right = 0;
 	gameFrame = 0;
-}
-
-int FP2I(int z) {
-	ret z/16;
-}
-
-int I2FP(int z) {
-	ret z*16;
-}
-
-int GetHighOutOfFour(int a, int b, int c, int d) {
-	if (a > b && a > c && a > d) {
-		ret 0;
-	}
-	if (b > a && b > c && b > d) {
-		ret 1;
-	}
-	if (c > a && c > b && c > d) {
-		ret 2;
-	}
-	ret 3;
+	//myNewStr = "hello!";
+	//printStr(myNewStr);
+	printInt(pow(5, 50));
+	
+	printInt(factorial(9));
+	
+	srand(time());
 }
 
 void CheckCollision(int boxX, int boxY, int boxW, int boxH) {
@@ -48,7 +42,10 @@ void CheckCollision(int boxX, int boxY, int boxW, int boxH) {
 	int rightP;
 	int topVar;
 	
-	if ((FP2I(y) - FP2I(vVel)) + 32 > boxY && FP2I(y) - FP2I(vVel) < boxY + boxH && (FP2I(x) + FP2I(hVel)) + 32 > boxX && FP2I(x + hVel) < boxX + boxW) {
+	if ((FP2I(y) - FP2I(vVel)) + 32 > boxY
+		&& FP2I(y) - FP2I(vVel) < boxY + boxH
+		&& (FP2I(x) + FP2I(hVel)) + 32 > boxX
+		&& FP2I(x + hVel) < boxX + boxW) {
 		topP = (boxY + boxH) - FP2I(y);
 		bottomP = (FP2I(y) + 32) - boxY;
 		leftP = (boxX + boxW) - FP2I(x);
@@ -57,6 +54,7 @@ void CheckCollision(int boxX, int boxY, int boxW, int boxH) {
 		if (topVar == 0) { // top
 			vVel = 0;
 			y = I2FP(boxY - 32);
+			grounded = 1;
 		} else if (topVar == 1) { // bottom
 			vVel = 0;
 			y = I2FP(boxY + boxH);
@@ -67,47 +65,68 @@ void CheckCollision(int boxX, int boxY, int boxW, int boxH) {
 			hVel = 0;
 			x = I2FP(boxX + boxW);
 		}
-	} else {
 	}
+	draw(3, boxX, boxY);
 }
 
 void DrawGame() {
-	draw(3, 30, 30);
+	DrawRectangle(FP2I(x), FP2I(y), 32, 32);
 	draw(1, x/16, y/16);
 }
 
+void CreatePlatform(int pX, int pY, int len) {
+	int i;
+	while (i < len) {
+		CheckCollision(pX*16 + 16*i, pY*16, 16, 16);
+		i += 1;
+	}
+}
+
 void MainLoop() {
+	clearScreen();
 	vVel = vVel - 1;
 	
 	y = y - vVel;
-	
-	if (right) {
-		hVel = hVel + 1;
-	} else if (left) {
-		hVel = hVel - 1;
-	} else if (hVel > 0) {
-		hVel = hVel - 1;
-	} else if (hVel < 0) {
-		hVel = hVel + 1;
-	} else
+	if ((right || left) && abs(hVel) < I2FP(2)) {
+		if (right) {
+			hVel = hVel + 1;
+		} else if (left) {
+			hVel = hVel - 1;
+		}
+	} else if (abs(hVel) > 0) {
+		if (hVel > 0) {
+			hVel = hVel - 1;
+		} else if (hVel < 0) {
+			hVel = hVel + 1;
+		}
+	} else {
 		hVel = 0;
+	}
 	
 	x = x + hVel;
+	
+	grounded = 0;
 	
 	if (y/16 > 100) {
 		y = 100*16;
 		vVel = 0;
+		grounded = 1;
 	}
 	
-	CheckCollision(30, 30, 16, 16);
+	CreatePlatform(7, 7, 5);
+	CreatePlatform(9, 5, 5);
 	
+	if (tryingToJump && grounded) {
+		Jump();
+		tryingToJump = 0;
+	}
 	
-	clearScreen();
 	DrawGame();
 }
 
 void Jump() {
 	vVel = 2*16;
+	
 }
 
 void OnKeyDown(int e) {
@@ -119,7 +138,7 @@ void OnKeyDown(int e) {
 	}
 	if (e == 38) { // up
 		up = 1;
-		Jump();
+		tryingToJump = 1;
 	}
 	if (e == 40) { // down
 		down = 1;
@@ -135,6 +154,7 @@ void OnKeyUp(int e) {
 	}
 	if (e == 38) { // up
 		up = 0;
+		tryingToJump = 0; // make sure that user doesn't jump even after they stop pressing key
 	}
 	if (e == 40) { // down
 		down = 0;
